@@ -16,7 +16,7 @@ Encoder encoder;
 SSD130xI2c64x32Driver display;
 SSD130xI2c64x32Driver::Config displayCfg;
 
-enum knob
+enum Knob
 {
     BAND_MIX,
     BAND_FREQ,
@@ -34,6 +34,27 @@ AdcChannelConfig knobCfgs[NUM_KNOBS];
 uint16_t knobValues[NUM_KNOBS];
 uint16_t knobValuesPrev[NUM_KNOBS];
 std::string knobNames[NUM_KNOBS] = {"Band Mix", "Band Freq", "Band Range", "Band Fx", "Filter Mix", "Filter Cutoff", "F. Reso.", "F. Feedback", "Filter Fx", "Master Fx"};
+std::string knobUnits[NUM_KNOBS] = {"%", "Hz", "Hz", "%", "%", "%", "%", "%", "%", "%"};
+
+std::string pctStrValue(float f_value, uint16_t i_value)
+{
+    return std::to_string(i_value);
+}
+
+std::string freqStrValue(float f_value, uint16_t i_value)
+{
+    return std::to_string(static_cast<uint>(f_value * 9980.0f + 20.0f));
+}
+
+std::string rangeStrValue(float f_value, uint16_t i_value)
+{
+    return std::to_string(static_cast<uint>(f_value * 5000.0f));
+}
+
+typedef std::string (*StrPtr)(float, uint16_t);
+StrPtr strFn = &pctStrValue;
+
+StrPtr knobGetString[NUM_KNOBS] = {&pctStrValue, &freqStrValue, &rangeStrValue, &pctStrValue, &pctStrValue, &pctStrValue, &pctStrValue, &pctStrValue, &pctStrValue, &pctStrValue};
 
 // Encoder
 constexpr Pin ENC_A_PIN = seed::D8;
@@ -69,16 +90,17 @@ void renderFx()
     display.Update();
 }
 
-void renderKnob(std::string knobName, uint16_t value)
+void renderKnob(std::string knobName, float f_value, uint16_t i_value, Knob knob)
 {
     display.Fill(false);
     text(display, 0, 0, knobName, PoppinsLight_8);
-    int x = text(display, 0, 16, std::to_string(value), PoppinsLight_12);
-    text(display, x + 2, 22, "%", PoppinsLight_8);
+    // int x = text(display, 0, 16, std::to_string(value), PoppinsLight_12);
+    int x = text(display, 0, 16, knobGetString[knob](f_value, i_value), PoppinsLight_12);
+    text(display, x + 2, 20, knobUnits[knob], PoppinsLight_8);
     display.Update();
 }
 
-float getKnobValue(knob knob) { return range(hw.adc.GetFloat(knob), 0.0f, 0.96f) / 0.96f; }
+float getKnobValue(Knob knob) { return range(hw.adc.GetFloat(knob), 0.0f, 0.96f) / 0.96f; }
 uint16_t f2i(float f) { return static_cast<uint16_t>(static_cast<uint>(f * 100000) * 0.001); }
 
 int main(void)
@@ -110,9 +132,9 @@ int main(void)
 
     for (int i = 0; i < NUM_KNOBS; i++)
     {
-        float f_knob = getKnobValue(MASTER_FX);
-        uint16_t i_knob = f2i(f_knob);
-        knobValues[i] = i_knob;
+        float f_value = getKnobValue(MASTER_FX);
+        uint16_t i_value = f2i(f_value);
+        knobValues[i] = i_value;
     }
 
     renderFx();
@@ -133,15 +155,15 @@ int main(void)
 
         for (int i = 0; i < NUM_KNOBS; i++)
         {
-            float f_knob = getKnobValue((knob)i);
-            uint16_t i_knob = f2i(f_knob);
-            if (i_knob != knobValues[i])
+            float f_value = getKnobValue((Knob)i);
+            uint16_t i_value = f2i(f_value);
+            if (i_value != knobValues[i])
             {
-                if (i_knob != knobValuesPrev[i]) // To avoid ping pong of value
+                if (i_value != knobValuesPrev[i]) // To avoid ping pong of value
                 {
                     knobValuesPrev[i] = knobValues[i];
-                    knobValues[i] = i_knob;
-                    renderKnob(knobNames[i], i_knob);
+                    knobValues[i] = i_value;
+                    renderKnob(knobNames[i], f_value, i_value, (Knob)i);
                 }
             }
         }
