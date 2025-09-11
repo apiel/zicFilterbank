@@ -3,57 +3,45 @@
 #include <cstdint>
 #include <string>
 
-#include "Sinclair_S.h"
-#include "Sinclair_M.h"
+#include "PoppinsLight_8.h"
+#include "PoppinsLight_12.h"
 
 #include "../libDaisy/src/dev/oled_ssd130x.h"
 
-void drawChar(daisy::SSD130xI2c64x32Driver& _display, int x, int y, unsigned char character, uint8_t *font, bool on = true, float scale = 1.0)
+int drawChar(daisy::SSD130xI2c64x32Driver &_display, int x, int y, uint8_t *charPtr, int width, int marginTop, int rows, bool on = true, float scale = 1.00f)
 {
-    uint16_t height = font[0];
-    uint16_t width = font[1];
-
-    uint8_t mod = width / 8;
-    float x0 = x;
-    uint16_t len = (mod * height);
-    uint16_t temp = ((character - 32) * len) + 2;
-    for (uint16_t i = 0; i < len; i++)
+    for (int row = 0; row < rows; row++)
     {
-        uint8_t ch = font[temp];
-        for (uint8_t j = 0; j < 8; j++)
+        for (int col = 0; col < width; col++)
         {
-            if (ch & 0x80)
+            uint8_t a = charPtr[col + row * width];
+            if (a > 80)
             {
-                _display.DrawPixel(x, y, on);
-            }
-            ch <<= 1;
-            x += scale;
-            if ((x - x0) == height * scale)
-            {
-                x = x0;
-                y += scale;
-                break;
+                _display.DrawPixel(x + col * scale, y + row * scale + marginTop, on);
             }
         }
-        temp++;
     }
+    return width * scale;
 }
 
-int text(daisy::SSD130xI2c64x32Driver& _display, int x, int y, std::string text, uint8_t *font, bool on = true, float scale = 1.0)
+int text(daisy::SSD130xI2c64x32Driver &_display, int x, int y, std::string text, const uint8_t **font, uint8_t size = 0, bool on = true, uint8_t fontSpacing = 1)
 {
-    uint16_t height = font[0];
-    uint16_t width = font[1];
     uint16_t len = text.length();
-
-    float xInc = width * scale;
+    uint8_t height = *font[0];
+    float scale = 1;
+    if (size > 0)
+    {
+        scale = size / (float)height;
+        scale = scale == 0 ? 1 : scale;
+    }
     for (uint16_t i = 0; i < len; i++)
     {
-        if ((x + xInc) > 64)
-        {
-            break;
-        }
-        drawChar(_display, x, y, text[i], font, on, scale);
-        x += xInc;
+        char c = text[i];
+        const uint8_t *charPtr = font[1 + (c - ' ')]; // Get the glyph data for the character
+        uint8_t width = charPtr[0];
+        uint8_t marginTop = charPtr[1] * scale;
+        uint8_t rows = charPtr[2];
+        x += drawChar(_display, x, y, (uint8_t *)charPtr + 3, width, marginTop, rows, on, scale) + fontSpacing;
     }
     return x;
 }

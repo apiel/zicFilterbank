@@ -36,8 +36,8 @@ static void Callback(AudioHandle::InterleavingInputBuffer in,
 void renderFx()
 {
     display.Fill(false);
-    text(display, 0, 0, "Fx", Sinclair_S);
-    text(display, 0, 20, multiFx.typeName, Sinclair_S);
+    text(display, 0, 0, "Fx", PoppinsLight_8);
+    text(display, 0, 20, multiFx.typeName, PoppinsLight_8);
     display.Update();
 }
 
