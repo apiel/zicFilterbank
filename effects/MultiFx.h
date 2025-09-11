@@ -96,17 +96,13 @@ protected:
 
     float fxCompressor(float input, float amount)
     {
-        if (amount == 0.0f)
+        if (amount == 0.0f || input == 0.0f)
         {
             return input;
         }
-        // How about?
-        // return (input * (1 - amount)) + (range(std::pow(input, amount * 0.8f), -1.0f, 1.0f) * fxAmount.pct());
-        if (input > 0.0f)
-        {
-            return std::pow(input, 1.0f - amount * 0.8f);
-        }
-        return -std::pow(-input, 1.0f - amount * 0.8f);
+        return input > 0.0f
+                   ? std::pow(input, 1.0f - amount * 0.8f)
+                   : -std::pow(-input, 1.0f - amount * 0.8f);
     }
 
     float fxWaveshaper(float input, float amount)

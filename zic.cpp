@@ -33,6 +33,7 @@ enum Knob
 AdcChannelConfig knobCfgs[NUM_KNOBS];
 uint16_t knobValues[NUM_KNOBS];
 uint16_t knobValuesPrev[NUM_KNOBS];
+float knobValuesFloat[NUM_KNOBS];
 std::string knobNames[NUM_KNOBS] = {"Band Mix", "Band Freq", "Band Range", "Band Fx", "Filter Mix", "Filter Cutoff", "F. Reso.", "F. Feedback", "Filter Fx", "Master Fx"};
 std::string knobUnits[NUM_KNOBS] = {"%", "Hz", "Hz", "%", "%", "%", "%", "%", "%", "%"};
 
@@ -138,6 +139,7 @@ int main(void)
         float f_value = getKnobValue(MASTER_FX);
         uint16_t i_value = f2i(f_value);
         knobValues[i] = i_value;
+        knobValuesFloat[i] = f_value;
     }
 
     renderFx();
@@ -166,6 +168,7 @@ int main(void)
                 {
                     knobValuesPrev[i] = knobValues[i];
                     knobValues[i] = i_value;
+                    knobValuesFloat[i] = f_value;
                     renderKnob(knobNames[i], f_value, i_value, (Knob)i);
                 }
             }
