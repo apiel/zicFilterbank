@@ -359,9 +359,24 @@ public:
     };
 
     std::string typeName = "OFF";
+    FXType fxType = FXType::FX_OFF;
+
+    void setIncType(int8_t direction)
+    {
+        int8_t newType = fxType + direction;
+        if (newType < 0)
+            newType = FX_COUNT - 1;
+        else if (newType >= FX_COUNT)
+            newType = 0;
+        setFxType((FXType)newType);
+    }
 
     void setFxType(MultiFx::FXType type)
     {
+        if (type < 0 || type >= FX_COUNT)
+            return;
+
+        fxType = type;
         if (type == MultiFx::FXType::FX_OFF)
         {
             typeName = "OFF";
