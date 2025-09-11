@@ -16,17 +16,6 @@ Encoder encoder;
 SSD130xI2c64x32Driver display;
 SSD130xI2c64x32Driver::Config displayCfg;
 
-AdcChannelConfig knobBandMix;
-AdcChannelConfig knobBandFreq;
-AdcChannelConfig knobBandRange;
-AdcChannelConfig knobBandFx;
-AdcChannelConfig knobFilterMix;
-AdcChannelConfig knobFilterCutoff;
-AdcChannelConfig knobFilterResonance;
-AdcChannelConfig knobFilterFeedback;
-AdcChannelConfig knobFilterFx;
-AdcChannelConfig knobMasterFx;
-
 enum knob
 {
     BAND_MIX,
@@ -42,7 +31,8 @@ enum knob
     NUM_KNOBS
 };
 AdcChannelConfig knobCfgs[NUM_KNOBS];
-float knobValues[NUM_KNOBS];
+uint16_t knobValues[NUM_KNOBS];
+std::string knobNames[NUM_KNOBS] = {"Band Mix", "Band Freq", "Band Range", "Band Fx", "Filter Mix", "Filter Cutoff", "Filter Resonance", "Filter Feedback", "Filter Fx", "Master Fx"};
 
 // Encoder
 constexpr Pin ENC_A_PIN = seed::D8;
@@ -78,13 +68,16 @@ void renderFx()
     display.Update();
 }
 
-void renderKnob(std::string knobName, float value)
+void renderKnob(std::string knobName, uint16_t value)
 {
     display.Fill(false);
     text(display, 0, 0, knobName, PoppinsLight_8);
-    text(display, 0, 16, std::to_string((int)(value * 10000)), PoppinsLight_12);
+    int x = text(display, 0, 16, std::to_string(value), PoppinsLight_12);
+    text(display, x + 2, 22, "%", PoppinsLight_8);
     display.Update();
 }
+
+float getKnobValue(knob knob) { return range(hw.adc.GetFloat(knob), 0.0f, 0.96f) / 0.96f; }
 
 int main(void)
 {
@@ -115,7 +108,9 @@ int main(void)
 
     for (int i = 0; i < NUM_KNOBS; i++)
     {
-        knobValues[i] = hw.adc.GetFloat(i);
+        float f_knob = getKnobValue(MASTER_FX);
+        uint16_t i_knob = static_cast<uint16_t>(f_knob * 100);
+        knobValues[i] = i_knob;
     }
 
     renderFx();
@@ -136,11 +131,12 @@ int main(void)
             renderFx();
         }
 
-        float knob = hw.adc.GetFloat(MASTER_FX);
-        if (knob != knobValues[MASTER_FX])
+        float f_knob = getKnobValue(MASTER_FX);
+        uint16_t i_knob = static_cast<uint16_t>(f_knob * 100);
+        if (i_knob != knobValues[MASTER_FX])
         {
-            knobValues[MASTER_FX] = knob;
-            renderKnob("Master Fx", knob);
+            knobValues[MASTER_FX] = i_knob;
+            renderKnob(knobNames[MASTER_FX], i_knob);
         }
 
         // if (frame == fps)
