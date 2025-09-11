@@ -335,9 +335,9 @@ public:
         REVERB,
         REVERB2,
         REVERB3,
-        DELAY,
-        DELAY2,
-        DELAY3,
+        // DELAY,
+        // DELAY2,
+        // DELAY3,
         BASS_BOOST,
         DRIVE,
         COMPRESSION,
@@ -397,21 +397,21 @@ public:
             typeName = "Reverb3";
             fxFn = &MultiFx::fxReverb3;
         }
-        else if (type == MultiFx::FXType::DELAY)
-        {
-            typeName = "Delay";
-            fxFn = &MultiFx::fxDelay;
-        }
-        else if (type == MultiFx::FXType::DELAY2)
-        {
-            typeName = "Delay2";
-            fxFn = &MultiFx::fxDelay2;
-        }
-        else if (type == MultiFx::FXType::DELAY3)
-        {
-            typeName = "Delay3";
-            fxFn = &MultiFx::fxDelay3;
-        }
+        // else if (type == MultiFx::FXType::DELAY)
+        // {
+        //     typeName = "Delay";
+        //     fxFn = &MultiFx::fxDelay;
+        // }
+        // else if (type == MultiFx::FXType::DELAY2)
+        // {
+        //     typeName = "Delay2";
+        //     fxFn = &MultiFx::fxDelay2;
+        // }
+        // else if (type == MultiFx::FXType::DELAY3)
+        // {
+        //     typeName = "Delay3";
+        //     fxFn = &MultiFx::fxDelay3;
+        // }
         else if (type == MultiFx::FXType::BASS_BOOST)
         {
             typeName = "Bass boost";
