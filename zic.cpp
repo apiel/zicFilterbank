@@ -43,12 +43,15 @@ std::string pctStrValue(float f_value, uint16_t i_value)
 
 std::string freqStrValue(float f_value, uint16_t i_value)
 {
-    return std::to_string(static_cast<uint>(f_value * 9980.0f + 20.0f));
+    float freq = 20.0f * powf(10000.0f/20.0f, f_value);
+    return std::to_string(static_cast<uint>(freq));
 }
 
 std::string rangeStrValue(float f_value, uint16_t i_value)
 {
-    return std::to_string(static_cast<uint>(f_value * 5000.0f));
+    // return std::to_string(static_cast<uint>(f_value * 5000.0f));
+    float range = 10.0f * powf(5000.0f/10.0f, f_value);
+    return std::to_string(static_cast<uint>(range));
 }
 
 typedef std::string (*StrPtr)(float, uint16_t);
