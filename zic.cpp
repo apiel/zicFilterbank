@@ -32,7 +32,8 @@ enum knob
 };
 AdcChannelConfig knobCfgs[NUM_KNOBS];
 uint16_t knobValues[NUM_KNOBS];
-std::string knobNames[NUM_KNOBS] = {"Band Mix", "Band Freq", "Band Range", "Band Fx", "Filter Mix", "Filter Cutoff", "Filter Resonance", "Filter Feedback", "Filter Fx", "Master Fx"};
+uint16_t knobValuesPrev[NUM_KNOBS];
+std::string knobNames[NUM_KNOBS] = {"Band Mix", "Band Freq", "Band Range", "Band Fx", "Filter Mix", "Filter Cutoff", "F. Reso.", "F. Feedback", "Filter Fx", "Master Fx"};
 
 // Encoder
 constexpr Pin ENC_A_PIN = seed::D8;
@@ -78,6 +79,7 @@ void renderKnob(std::string knobName, uint16_t value)
 }
 
 float getKnobValue(knob knob) { return range(hw.adc.GetFloat(knob), 0.0f, 0.96f) / 0.96f; }
+uint16_t f2i(float f) { return static_cast<uint16_t>(static_cast<uint>(f * 100000) * 0.001); }
 
 int main(void)
 {
@@ -109,13 +111,11 @@ int main(void)
     for (int i = 0; i < NUM_KNOBS; i++)
     {
         float f_knob = getKnobValue(MASTER_FX);
-        uint16_t i_knob = static_cast<uint16_t>(f_knob * 100);
+        uint16_t i_knob = f2i(f_knob);
         knobValues[i] = i_knob;
     }
 
     renderFx();
-    // uint8_t fps = 30;
-    // uint8_t frame = 0;
     while (1)
     {
         encoder.Debounce();
@@ -131,25 +131,20 @@ int main(void)
             renderFx();
         }
 
-        float f_knob = getKnobValue(MASTER_FX);
-        uint16_t i_knob = static_cast<uint16_t>(f_knob * 100);
-        if (i_knob != knobValues[MASTER_FX])
+        for (int i = 0; i < NUM_KNOBS; i++)
         {
-            knobValues[MASTER_FX] = i_knob;
-            renderKnob(knobNames[MASTER_FX], i_knob);
+            float f_knob = getKnobValue((knob)i);
+            uint16_t i_knob = f2i(f_knob);
+            if (i_knob != knobValues[i])
+            {
+                if (i_knob != knobValuesPrev[i]) // To avoid ping pong of value
+                {
+                    knobValuesPrev[i] = knobValues[i];
+                    knobValues[i] = i_knob;
+                    renderKnob(knobNames[i], i_knob);
+                }
+            }
         }
-
-        // if (frame == fps)
-        // {
-        //     frame = 0;
-        //     display.Fill(false);
-        //     // draw random pixels
-        //     display.DrawPixel(rand() % 64, rand() % 32, true);
-
-        //     text(display, 0, 0, "Zic", Sinclair_S);
-        //     display.Update();
-        // }
-        // frame++;
 
         System::Delay(1);
     }
