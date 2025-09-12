@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MultiFx.h"
+#include "MMfilter.h"
 
 class BandIsolatorFx
 {
@@ -76,6 +77,7 @@ protected:
 
 public:
     MultiFx multiFx;
+    MMfilter filter;
     float centerFreq = 1000.0f;
     float rangeHz = 2000.0f;
     float fxAmount = 0.0f;
@@ -91,7 +93,7 @@ public:
         multiFx.init(sampleRate, bufferId, type);
         updateCoeffs();
     }
-    
+
     void setCenterFreq(float amount)
     {
         float freq = 20.0f * powf(10000.0f / 20.0f, amount);
@@ -127,6 +129,7 @@ public:
         float band = highpass.process(input);
         band = lowpass.process(band);
         band = multiFx.apply(band, fxAmount);
+        band = filter.process(band);
 
         return input * (1.0f - mix) + band * mix;
     }

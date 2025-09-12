@@ -16,7 +16,6 @@ Encoder encoder;
 
 MultiFx multiFx;
 BandIsolatorFx bandFx;
-// FilteredFx filteredFx;
 
 SSD130xI2c64x32Driver display;
 SSD130xI2c64x32Driver::Config displayCfg;
@@ -76,8 +75,8 @@ void actionBandFreq(float f_value, uint16_t i_value) { bandFx.setCenterFreq(f_va
 void actionBandRange(float f_value, uint16_t i_value) { bandFx.setRange(f_value); }
 void actionBandFx(float f_value, uint16_t i_value) { bandFx.setFxAmount(f_value); }
 void actionFilterMix(float f_value, uint16_t i_value) { /*filteredFx.setMix(f_value);*/ }
-void actionFilterCutoff(float f_value, uint16_t i_value) { /*filteredFx.setCutoff(f_value);*/ }
-void actionFilterReso(float f_value, uint16_t i_value) { /*filteredFx.setResonance(f_value);*/ }
+void actionFilterCutoff(float f_value, uint16_t i_value) { float amount = f_value * 2 - 1.0f; bandFx.filter.setCutoff(amount); }
+void actionFilterReso(float f_value, uint16_t i_value) { bandFx.filter.setResonance(f_value); }
 void actionFilterFeedback(float f_value, uint16_t i_value) { /*filteredFx.setFeedback(f_value);*/ }
 void actionFilterFx(float f_value, uint16_t i_value) { /*filteredFx.setFxAmount(f_value);*/ }
 
@@ -99,8 +98,7 @@ static void Callback(AudioHandle::InterleavingInputBuffer in,
     for (size_t i = 0; i < size; i++)
     {
         float output = in[i];
-        // output = bandFx.sample(output);
-        // output = filteredFx.sample(output);
+        output = bandFx.sample(output);
         output = multiFx.apply(output, knobValuesFloat[MASTER_FX]);
         out[i] = clamp(output, -1.0f, 1.0f);
     }
@@ -146,7 +144,7 @@ int main(void)
     hw.SetAudioBlockSize(4);
     hw.StartAudio(Callback);
 
-    multiFx.init(hw.AudioSampleRate(), 0, MultiFx::FXType::REVERB);
+    multiFx.init(hw.AudioSampleRate(), 0, MultiFx::FXType::BASS_BOOST);
     bandFx.init(hw.AudioSampleRate(), 1, MultiFx::FXType::COMPRESSION);
     // filteredFx.init(hw.AudioSampleRate(), MultiFx::FXType::HPF);
 
