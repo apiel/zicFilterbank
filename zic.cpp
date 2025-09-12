@@ -10,8 +10,23 @@
 
 using namespace daisy;
 
+struct StorageSettings
+{
+    MultiFx::FXType bandFx1;
+    MultiFx::FXType bandFx2;
+    MultiFx::FXType masterFx1;
+    MultiFx::FXType masterFx2;
+    MultiFx::FXType masterFx3;
+
+    bool operator!=(const StorageSettings &a) const
+    {
+        return !(a.bandFx1 == bandFx1 && a.bandFx2 == bandFx2 && a.masterFx1 == masterFx1 && a.masterFx2 == masterFx2 && a.masterFx3 == masterFx3);
+    }
+};
+
 DaisySeed hw;
 Encoder encoder;
+PersistentStorage<StorageSettings> storage(hw.qspi);
 
 MultiFx multiFx1;
 MultiFx multiFx2;
@@ -170,10 +185,20 @@ int main(void)
     hw.SetAudioBlockSize(4);
     hw.StartAudio(Callback);
 
+    StorageSettings defaultConfig = {MultiFx::FXType::COMPRESSION, MultiFx::FXType::FX_OFF, MultiFx::FXType::BASS_BOOST, MultiFx::FXType::FX_OFF, MultiFx::FXType::FX_OFF};
+    storage.Init(defaultConfig);
+
     bandFx.init(hw.AudioSampleRate(), 0, 1, MultiFx::FXType::COMPRESSION);
     multiFx1.init(hw.AudioSampleRate(), 2, MultiFx::FXType::BASS_BOOST);
     multiFx2.init(hw.AudioSampleRate(), 3, MultiFx::FXType::FX_OFF);
     multiFx3.init(hw.AudioSampleRate(), 4, MultiFx::FXType::FX_OFF);
+
+    StorageSettings &config = storage.GetSettings();
+    bandFx.multiFx.setFxType(config.bandFx1);
+    bandFx.multiFx2.setFxType(config.bandFx2);
+    multiFx1.setFxType(config.masterFx1);
+    multiFx2.setFxType(config.masterFx2);
+    multiFx3.setFxType(config.masterFx3);
 
     encoder.Init(ENC_A_PIN, ENC_B_PIN, ENC_CLICK_PIN);
     displayCfg.transport_config.i2c_config.pin_config.sda = seed::D12;
@@ -213,15 +238,35 @@ int main(void)
         if (inc)
         {
             if (isFx == 0)
+            {
                 bandFx.multiFx.setIncType(inc);
+                config.bandFx1 = bandFx.multiFx.fxType;
+                storage.Save();
+            }
             else if (isFx == 1)
+            {
                 bandFx.multiFx2.setIncType(inc);
+                config.bandFx2 = bandFx.multiFx2.fxType;
+                storage.Save();
+            }
             else if (isFx == 2)
+            {
                 multiFx1.setIncType(inc);
+                config.masterFx1 = multiFx1.fxType;
+                storage.Save();
+            }
             else if (isFx == 3)
+            {
                 multiFx2.setIncType(inc);
+                config.masterFx2 = multiFx2.fxType;
+                storage.Save();
+            }
             else
+            {
                 multiFx3.setIncType(inc);
+                config.masterFx3 = multiFx3.fxType;
+                storage.Save();
+            }
 
             renderFx();
         }
