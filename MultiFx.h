@@ -3,6 +3,8 @@
 #include "clamp.h"
 #include "Reverb.h"
 
+#include "daisysp.h"
+
 #include <algorithm>
 #include <string>
 
@@ -24,6 +26,8 @@ class MultiFx
 protected:
     float *buffer;
     float sampleRate = 44100.0f;
+
+    daisysp::Overdrive overdrive;
 
     typedef float (MultiFx::*FnPtr)(float, float);
     FnPtr fxFn = &MultiFx::fxOff;
@@ -329,6 +333,12 @@ protected:
         return hp;
     }
 
+    float fxOverdrive(float input, float amount)
+    {
+        overdrive.SetDrive(amount);
+        return input * 0.75f + overdrive.Process(input) * 0.25f;
+    }
+
     void clearBuffer()
     {
         for (int i = 0; i < REVERB_BUFFER_SIZE; i++)
@@ -346,6 +356,7 @@ public:
         COMPRESSION,
         WAVESHAPER,
         CLIPPING,
+        OVERDRIVE,
         SAMPLE_REDUCER,
         BITCRUSHER,
         INVERTER,
@@ -463,6 +474,11 @@ public:
         {
             typeName = "Clipping";
             fxFn = &MultiFx::fxClipping;
+        }
+        else if (type == MultiFx::FXType::OVERDRIVE)
+        {
+            typeName = "Overdrive";
+            fxFn = &MultiFx::fxOverdrive;
         }
         else if (type == MultiFx::FXType::SAMPLE_REDUCER)
         {
