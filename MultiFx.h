@@ -35,19 +35,16 @@ protected:
         {
             return input;
         }
-        int reverbSamples = static_cast<int>((amount * 0.5f) * sampleRate); // Reverb duration scaled
-        float feedback = amount * 0.7f;                                     // Feedback scaled proportionally
-        float mix = amount * 0.5f;                                          // Mix scaled proportionally
-
-        if (reverbSamples > REVERB_BUFFER_SIZE)
-        {
-            reverbSamples = REVERB_BUFFER_SIZE; // Cap the reverb duration to buffer size
-        }
 
         float reverbSignal = buffer[bufferIndex];
+
+        float feedback = amount * 0.7f; // Feedback scaled proportionally
         buffer[bufferIndex] = input + reverbSignal * feedback;
+
+        int reverbSamples = amount * REVERB_BUFFER_SIZE; // Reverb duration scaled
         bufferIndex = (bufferIndex + 1) % reverbSamples;
 
+        float mix = amount * 0.5f; // Mix scaled proportionally
         return input * (1.0f - mix) + reverbSignal * mix;
     }
 
@@ -311,7 +308,6 @@ public:
     enum FXType
     {
         FX_OFF,
-        REVERB,
         BASS_BOOST,
         DRIVE,
         COMPRESSION,
@@ -322,8 +318,11 @@ public:
         INVERTER,
         TREMOLO,
         RING_MOD,
-        FX_FEEDBACK,
         DECIMATOR,
+        REVERB,
+        // REVERB2,
+        // REVERB3,
+        FEEDBACK,
         LPF,
         HPF,
         HPF_DIST,
@@ -409,7 +408,7 @@ public:
             typeName = "Ring mod.";
             fxFn = &MultiFx::fxRingMod;
         }
-        else if (type == MultiFx::FXType::FX_FEEDBACK)
+        else if (type == MultiFx::FXType::FEEDBACK)
         {
             typeName = "Feedback";
             fxFn = &MultiFx::fxFeedback;
