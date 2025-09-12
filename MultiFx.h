@@ -5,18 +5,18 @@
 #include <algorithm>
 #include <string>
 
+constexpr uint8_t BUFFER_COUNT = 5;
+
+// #define USE_SDRAM
+#ifdef USE_SDRAM
 constexpr int REVERB_BUFFER_SIZE = 48000;                 // 1 second buffer at 48kHz
 constexpr int DELAY_BUFFER_SIZE = REVERB_BUFFER_SIZE * 3; // 3 second
-
-// constexpr int REVERB_BUFFER_SIZE = 20000;
-// constexpr int DELAY_BUFFER_SIZE = REVERB_BUFFER_SIZE * 3;
-
-// constexpr int REVERB_BUFFER_SIZE = 5000;
-// constexpr int DELAY_BUFFER_SIZE = REVERB_BUFFER_SIZE * 3;
-
-constexpr uint8_t BUFFER_COUNT = 10;
-DSY_SDRAM_BSS float BUFFER[BUFFER_COUNT][DELAY_BUFFER_SIZE];
-
+float DSY_SDRAM_BSS BUFFER[BUFFER_COUNT][DELAY_BUFFER_SIZE];
+#else
+constexpr int REVERB_BUFFER_SIZE = 25000;
+constexpr int DELAY_BUFFER_SIZE = REVERB_BUFFER_SIZE;
+float BUFFER[BUFFER_COUNT][DELAY_BUFFER_SIZE];
+#endif
 class MultiFx
 {
 protected:
@@ -31,14 +31,16 @@ protected:
     int bufferIndex = 0;
     float fxReverb(float input, float amount)
     {
-        if (amount == 0.0f) {
+        if (amount == 0.0f)
+        {
             return input;
         }
         int reverbSamples = static_cast<int>((amount * 0.5f) * sampleRate); // Reverb duration scaled
-        float feedback = amount * 0.7f; // Feedback scaled proportionally
-        float mix = amount * 0.5f; // Mix scaled proportionally
+        float feedback = amount * 0.7f;                                     // Feedback scaled proportionally
+        float mix = amount * 0.5f;                                          // Mix scaled proportionally
 
-        if (reverbSamples > REVERB_BUFFER_SIZE) {
+        if (reverbSamples > REVERB_BUFFER_SIZE)
+        {
             reverbSamples = REVERB_BUFFER_SIZE; // Cap the reverb duration to buffer size
         }
 
