@@ -13,7 +13,7 @@ constexpr int REVERB_BUFFER_SIZE = 48000;                 // 1 second buffer at 
 constexpr int DELAY_BUFFER_SIZE = REVERB_BUFFER_SIZE * 3; // 3 second
 float DSY_SDRAM_BSS BUFFER[BUFFER_COUNT][DELAY_BUFFER_SIZE];
 #else
-constexpr int REVERB_BUFFER_SIZE = 25000;
+constexpr int REVERB_BUFFER_SIZE = 125000 / BUFFER_COUNT;
 constexpr int DELAY_BUFFER_SIZE = REVERB_BUFFER_SIZE;
 float BUFFER[BUFFER_COUNT][DELAY_BUFFER_SIZE];
 #endif
