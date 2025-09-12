@@ -99,7 +99,7 @@ static void Callback(AudioHandle::InterleavingInputBuffer in,
     for (size_t i = 0; i < size; i++)
     {
         float output = in[i];
-        output = bandFx.sample(output);
+        // output = bandFx.sample(output);
         // output = filteredFx.sample(output);
         output = multiFx.apply(output, knobValuesFloat[MASTER_FX]);
         out[i] = clamp(output, -1.0f, 1.0f);
@@ -146,7 +146,7 @@ int main(void)
     hw.SetAudioBlockSize(4);
     hw.StartAudio(Callback);
 
-    multiFx.init(hw.AudioSampleRate(), 0, MultiFx::FXType::BASS_BOOST);
+    multiFx.init(hw.AudioSampleRate(), 0, MultiFx::FXType::REVERB);
     bandFx.init(hw.AudioSampleRate(), 1, MultiFx::FXType::COMPRESSION);
     // filteredFx.init(hw.AudioSampleRate(), MultiFx::FXType::HPF);
 

@@ -1,19 +1,18 @@
 #pragma once
 
-#include "applyReverb.h"
 #include "clamp.h"
 
 #include <algorithm>
 #include <string>
 
-// constexpr int REVERB_BUFFER_SIZE = 48000;                 // 1 second buffer at 48kHz
-// constexpr int DELAY_BUFFER_SIZE = REVERB_BUFFER_SIZE * 3; // 3 second
+constexpr int REVERB_BUFFER_SIZE = 48000;                 // 1 second buffer at 48kHz
+constexpr int DELAY_BUFFER_SIZE = REVERB_BUFFER_SIZE * 3; // 3 second
 
 // constexpr int REVERB_BUFFER_SIZE = 20000;
 // constexpr int DELAY_BUFFER_SIZE = REVERB_BUFFER_SIZE * 3;
 
-constexpr int REVERB_BUFFER_SIZE = 5000;
-constexpr int DELAY_BUFFER_SIZE = REVERB_BUFFER_SIZE * 3;
+// constexpr int REVERB_BUFFER_SIZE = 5000;
+// constexpr int DELAY_BUFFER_SIZE = REVERB_BUFFER_SIZE * 3;
 
 constexpr uint8_t BUFFER_COUNT = 10;
 DSY_SDRAM_BSS float BUFFER[BUFFER_COUNT][DELAY_BUFFER_SIZE];
@@ -21,7 +20,7 @@ DSY_SDRAM_BSS float BUFFER[BUFFER_COUNT][DELAY_BUFFER_SIZE];
 class MultiFx
 {
 protected:
-    float* buffer;
+    float *buffer;
     float sampleRate = 44100.0f;
 
     typedef float (MultiFx::*FnPtr)(float, float);
@@ -30,46 +29,24 @@ protected:
     float fxOff(float input, float) { return input; }
 
     int bufferIndex = 0;
-    float fxReverb(float signal, float amount)
+    float fxReverb(float input, float amount)
     {
-        float reverbAmount = amount;
-        return applyReverb(signal, reverbAmount, buffer, bufferIndex, REVERB_BUFFER_SIZE);
-    }
+        if (amount == 0.0f) {
+            return input;
+        }
+        int reverbSamples = static_cast<int>((amount * 0.5f) * sampleRate); // Reverb duration scaled
+        float feedback = amount * 0.7f; // Feedback scaled proportionally
+        float mix = amount * 0.5f; // Mix scaled proportionally
 
-    float fxShimmerReverb(float input, float amount)
-    {
-        return applyShimmerReverb(input, amount, buffer, bufferIndex, REVERB_BUFFER_SIZE);
-    }
+        if (reverbSamples > REVERB_BUFFER_SIZE) {
+            reverbSamples = REVERB_BUFFER_SIZE; // Cap the reverb duration to buffer size
+        }
 
-    int shimmerTime = 0;
-    float fxShimmer2Reverb(float input, float amount)
-    {
-        return applyShimmer2Reverb(input, amount, buffer, bufferIndex, REVERB_BUFFER_SIZE, shimmerTime);
-    }
+        float reverbSignal = buffer[bufferIndex];
+        buffer[bufferIndex] = input + reverbSignal * feedback;
+        bufferIndex = (bufferIndex + 1) % reverbSamples;
 
-    float fxReverb2(float signal, float amount)
-    {
-        return applyReverb2(signal, amount, buffer, bufferIndex, REVERB_BUFFER_SIZE);
-    }
-
-    float fxReverb3(float signal, float amount)
-    {
-        return applyReverb3(signal, amount, buffer, bufferIndex, REVERB_BUFFER_SIZE);
-    }
-
-    float fxDelay(float input, float amount)
-    {
-        return applyDelay(input, amount, buffer, bufferIndex, DELAY_BUFFER_SIZE);
-    }
-
-    float fxDelay2(float input, float amount)
-    {
-        return applyDelay2(input, amount, buffer, bufferIndex, DELAY_BUFFER_SIZE);
-    }
-
-    float fxDelay3(float input, float amount)
-    {
-        return applyDelay3(input, amount, buffer, bufferIndex, DELAY_BUFFER_SIZE);
+        return input * (1.0f - mix) + reverbSignal * mix;
     }
 
     float prevInput = 0;
@@ -333,11 +310,6 @@ public:
     {
         FX_OFF,
         REVERB,
-        REVERB2,
-        REVERB3,
-        DELAY,
-        DELAY2,
-        DELAY3,
         BASS_BOOST,
         DRIVE,
         COMPRESSION,
@@ -348,8 +320,6 @@ public:
         INVERTER,
         TREMOLO,
         RING_MOD,
-        FX_SHIMMER_REVERB,
-        FX_SHIMMER2_REVERB,
         FX_FEEDBACK,
         DECIMATOR,
         LPF,
@@ -386,31 +356,6 @@ public:
         {
             typeName = "Reverb";
             fxFn = &MultiFx::fxReverb;
-        }
-        else if (type == MultiFx::FXType::REVERB2)
-        {
-            typeName = "Reverb2";
-            fxFn = &MultiFx::fxReverb2;
-        }
-        else if (type == MultiFx::FXType::REVERB3)
-        {
-            typeName = "Reverb3";
-            fxFn = &MultiFx::fxReverb3;
-        }
-        else if (type == MultiFx::FXType::DELAY)
-        {
-            typeName = "Delay";
-            fxFn = &MultiFx::fxDelay;
-        }
-        else if (type == MultiFx::FXType::DELAY2)
-        {
-            typeName = "Delay2";
-            fxFn = &MultiFx::fxDelay2;
-        }
-        else if (type == MultiFx::FXType::DELAY3)
-        {
-            typeName = "Delay3";
-            fxFn = &MultiFx::fxDelay3;
         }
         else if (type == MultiFx::FXType::BASS_BOOST)
         {
@@ -462,16 +407,6 @@ public:
             typeName = "Ring mod.";
             fxFn = &MultiFx::fxRingMod;
         }
-        else if (type == MultiFx::FXType::FX_SHIMMER_REVERB)
-        {
-            typeName = "Shimmer";
-            fxFn = &MultiFx::fxShimmerReverb;
-        }
-        else if (type == MultiFx::FXType::FX_SHIMMER2_REVERB)
-        {
-            typeName = "Shimmer2";
-            fxFn = &MultiFx::fxShimmer2Reverb;
-        }
         else if (type == MultiFx::FXType::FX_FEEDBACK)
         {
             typeName = "Feedback";
@@ -513,6 +448,7 @@ public:
         setFxType(type);
     }
 
+    // Get one sample after the other
     float apply(float in, float amount)
     {
         return (this->*fxFn)(in, amount);
