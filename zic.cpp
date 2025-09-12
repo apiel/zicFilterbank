@@ -13,7 +13,9 @@ using namespace daisy;
 DaisySeed hw;
 Encoder encoder;
 
-MultiFx multiFx;
+MultiFx multiFx1;
+MultiFx multiFx2;
+MultiFx multiFx3;
 BandIsolatorFx bandFx;
 
 SSD130xI2c64x32Driver display;
@@ -36,12 +38,12 @@ enum Knob
     BAND_FREQ,
     BAND_RANGE,
     BAND_FX,
+    BAND_FX2,
     BAND_CUTOFF,
     BAND_RESONANCE,
     MASTER_FX1,
     MASTER_FX2,
     MASTER_FX3,
-    MASTER_FX4,
     NUM_KNOBS
 };
 
@@ -76,6 +78,7 @@ void actionBandMix(float f_value, uint16_t i_value) { bandFx.setMix(f_value); }
 void actionBandFreq(float f_value, uint16_t i_value) { bandFx.setCenterFreq(f_value); }
 void actionBandRange(float f_value, uint16_t i_value) { bandFx.setRange(f_value); }
 void actionBandFx(float f_value, uint16_t i_value) { bandFx.setFxAmount(f_value); }
+void actionBandFx2(float f_value, uint16_t i_value) { bandFx.setFx2Amount(f_value); }
 void actionFilterCutoff(float f_value, uint16_t i_value)
 {
     float amount = f_value * 2 - 1.0f;
@@ -90,10 +93,10 @@ AdcChannelConfig knobCfgs[NUM_KNOBS];
 uint16_t knobValues[NUM_KNOBS];
 uint16_t knobValuesPrev[NUM_KNOBS];
 float knobValuesFloat[NUM_KNOBS];
-std::string knobNames[NUM_KNOBS] = {"Band Mix", "Band Freq", "Band Range", "Band Fx", "Filter Cutoff", "Resonance", "Master Fx 1", "Master Fx 2", "Master Fx 3", "Master Fx 4"};
+std::string knobNames[NUM_KNOBS] = {"Band Mix", "Band Freq", "Band Range", "Band Fx 1", "Band Fx 2", "Filter Cutoff", "Resonance", "Master Fx 1", "Master Fx 2", "Master Fx 3"};
 std::string knobUnits[NUM_KNOBS] = {"%", "Hz", "Hz", "%", "%", "%", "%", "%", "%", "%"};
-StrPtr knobGetString[NUM_KNOBS] = {&pctStrValue, &freqStrValue, &rangeStrValue, &pctStrValue, &filterStrValue, &pctStrValue, &pctStrValue, &pctStrValue, &pctStrValue, &pctStrValue};
-ActionPtr knobActions[NUM_KNOBS] = {&actionBandMix, &actionBandFreq, &actionBandRange, &actionBandFx, &actionFilterCutoff, &actionFilterReso, &actionNone, &actionNone, &actionNone, &actionNone};
+StrPtr knobGetString[NUM_KNOBS] = {&pctStrValue, &freqStrValue, &rangeStrValue, &pctStrValue, &pctStrValue, &filterStrValue, &pctStrValue, &pctStrValue, &pctStrValue, &pctStrValue};
+ActionPtr knobActions[NUM_KNOBS] = {&actionBandMix, &actionBandFreq, &actionBandRange, &actionBandFx, &actionBandFx2, &actionFilterCutoff, &actionFilterReso, &actionNone, &actionNone, &actionNone};
 
 // Encoder
 constexpr Pin ENC_A_PIN = seed::D8;
@@ -110,7 +113,9 @@ static void Callback(AudioHandle::InterleavingInputBuffer in,
     {
         float output = in[i];
         output = bandFx.sample(output);
-        output = multiFx.apply(output, knobValuesFloat[MASTER_FX1]);
+        output = multiFx1.apply(output, knobValuesFloat[MASTER_FX1]);
+        output = multiFx2.apply(output, knobValuesFloat[MASTER_FX2]);
+        output = multiFx3.apply(output, knobValuesFloat[MASTER_FX3]);
         out[i] = clamp(output, -1.0f, 1.0f);
     }
 }
@@ -120,18 +125,28 @@ void renderFx()
     display.Fill(false);
     if (isFx == 0)
     {
-        text(display, 0, 0, "Band Fx", PoppinsLight_8);
+        text(display, 0, 0, "Band Fx 1", PoppinsLight_8);
         text(display, 0, 20, bandFx.multiFx.typeName, PoppinsLight_8);
     }
-    // else if (isFx == 1)
-    // {
-    //     text(display, 0, 0, "Filter Fx", PoppinsLight_8);
-    //     text(display, 0, 20, filteredFx.multiFx.typeName, PoppinsLight_8);
-    // }
+    else if (isFx == 1)
+    {
+        text(display, 0, 0, "Band Fx 2", PoppinsLight_8);
+        text(display, 0, 20, bandFx.multiFx2.typeName, PoppinsLight_8);
+    }
+    else if (isFx == 2)
+    {
+        text(display, 0, 0, "Master Fx 1", PoppinsLight_8);
+        text(display, 0, 20, multiFx1.typeName, PoppinsLight_8);
+    }
+    else if (isFx == 3)
+    {
+        text(display, 0, 0, "Master Fx 2", PoppinsLight_8);
+        text(display, 0, 20, multiFx2.typeName, PoppinsLight_8);
+    }
     else
     {
-        text(display, 0, 0, "Master Fx", PoppinsLight_8);
-        text(display, 0, 20, multiFx.typeName, PoppinsLight_8);
+        text(display, 0, 0, "Master Fx 3", PoppinsLight_8);
+        text(display, 0, 20, multiFx3.typeName, PoppinsLight_8);
     }
     display.Update();
 }
@@ -155,8 +170,10 @@ int main(void)
     hw.SetAudioBlockSize(4);
     hw.StartAudio(Callback);
 
-    multiFx.init(hw.AudioSampleRate(), 0, MultiFx::FXType::BASS_BOOST);
-    bandFx.init(hw.AudioSampleRate(), 1, MultiFx::FXType::COMPRESSION);
+    bandFx.init(hw.AudioSampleRate(), 0, 1, MultiFx::FXType::COMPRESSION);
+    multiFx1.init(hw.AudioSampleRate(), 2, MultiFx::FXType::BASS_BOOST);
+    multiFx2.init(hw.AudioSampleRate(), 3, MultiFx::FXType::FX_OFF);
+    multiFx3.init(hw.AudioSampleRate(), 4, MultiFx::FXType::FX_OFF);
 
     encoder.Init(ENC_A_PIN, ENC_B_PIN, ENC_CLICK_PIN);
     displayCfg.transport_config.i2c_config.pin_config.sda = seed::D12;
@@ -171,10 +188,10 @@ int main(void)
     knobCfgs[BAND_RANGE].InitSingle(KNOB_5);
     knobCfgs[BAND_CUTOFF].InitSingle(KNOB_6);
 
-    knobCfgs[MASTER_FX1].InitSingle(KNOB_7);
-    knobCfgs[MASTER_FX2].InitSingle(KNOB_8);
-    knobCfgs[MASTER_FX3].InitSingle(KNOB_9);
-    knobCfgs[MASTER_FX4].InitSingle(KNOB_10);
+    knobCfgs[BAND_FX2].InitSingle(KNOB_7);
+    knobCfgs[MASTER_FX1].InitSingle(KNOB_8);
+    knobCfgs[MASTER_FX2].InitSingle(KNOB_9);
+    knobCfgs[MASTER_FX3].InitSingle(KNOB_10);
 
     hw.adc.Init(knobCfgs, 10);
     hw.adc.Start();
@@ -197,16 +214,20 @@ int main(void)
         {
             if (isFx == 0)
                 bandFx.multiFx.setIncType(inc);
-            // else if (isFx == 1)
-            //     filteredFx.multiFx.setIncType(inc);
+            else if (isFx == 1)
+                bandFx.multiFx2.setIncType(inc);
+            else if (isFx == 2)
+                multiFx1.setIncType(inc);
+            else if (isFx == 3)
+                multiFx2.setIncType(inc);
             else
-                multiFx.setIncType(inc);
+                multiFx3.setIncType(inc);
 
             renderFx();
         }
         if (encoder.RisingEdge())
         {
-            isFx = (isFx + 1) % 3;
+            isFx = (isFx + 1) % 5;
             renderFx();
         }
 

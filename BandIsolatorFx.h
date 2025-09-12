@@ -77,20 +77,24 @@ protected:
 
 public:
     MultiFx multiFx;
+    MultiFx multiFx2;
+
     MMfilter filter;
     float centerFreq = 1000.0f;
     float rangeHz = 2000.0f;
     float fxAmount = 0.0f;
+    float fx2Amount = 0.0f;
     float mix = 0.5f;
 
     BandIsolatorFx()
     {
     }
 
-    void init(float sampleRate, uint8_t bufferId, MultiFx::FXType type = MultiFx::FXType::FX_OFF)
+    void init(float sampleRate, uint8_t bufferId1, uint8_t bufferId2, MultiFx::FXType type = MultiFx::FXType::FX_OFF)
     {
         this->sampleRate = sampleRate;
-        multiFx.init(sampleRate, bufferId, type);
+        multiFx.init(sampleRate, bufferId1, type);
+        multiFx2.init(sampleRate, bufferId2, MultiFx::FXType::FX_OFF);
         updateCoeffs();
     }
 
@@ -118,6 +122,16 @@ public:
         fxAmount = clamp(amount, 0.0f, 1.0f);
     }
 
+    void setFx2Type(MultiFx::FXType type)
+    {
+        multiFx2.setFxType(type);
+    }
+
+    void setFx2Amount(float amount)
+    {
+        fx2Amount = clamp(amount, 0.0f, 1.0f);
+    }
+
     void setMix(float amount)
     {
         mix = clamp(amount, 0.0f, 1.0f);
@@ -129,6 +143,7 @@ public:
         float band = highpass.process(input);
         band = lowpass.process(band);
         band = multiFx.apply(band, fxAmount);
+        band = multiFx2.apply(band, fx2Amount);
         band = filter.process(band);
 
         return input * (1.0f - mix) + band * mix;
