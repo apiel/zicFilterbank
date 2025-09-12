@@ -6,9 +6,22 @@
 #include <algorithm>
 #include <string>
 
+// constexpr int REVERB_BUFFER_SIZE = 48000;                 // 1 second buffer at 48kHz
+// constexpr int DELAY_BUFFER_SIZE = REVERB_BUFFER_SIZE * 3; // 3 second
+
+// constexpr int REVERB_BUFFER_SIZE = 20000;
+// constexpr int DELAY_BUFFER_SIZE = REVERB_BUFFER_SIZE * 3;
+
+constexpr int REVERB_BUFFER_SIZE = 5000;
+constexpr int DELAY_BUFFER_SIZE = REVERB_BUFFER_SIZE * 3;
+
+constexpr uint8_t BUFFER_COUNT = 10;
+DSY_SDRAM_BSS float BUFFER[BUFFER_COUNT][DELAY_BUFFER_SIZE];
+
 class MultiFx
 {
 protected:
+    float* buffer;
     float sampleRate = 44100.0f;
 
     typedef float (MultiFx::*FnPtr)(float, float);
@@ -16,18 +29,6 @@ protected:
 
     float fxOff(float input, float) { return input; }
 
-    // TODO switch to 64MB ram...
-
-    // static constexpr int REVERB_BUFFER_SIZE = 48000;                 // 1 second buffer at 48kHz
-    // static constexpr int DELAY_BUFFER_SIZE = REVERB_BUFFER_SIZE * 3; // 3 second
-
-    // static constexpr int REVERB_BUFFER_SIZE = 20000;
-    // static constexpr int DELAY_BUFFER_SIZE = REVERB_BUFFER_SIZE * 3;
-
-    static constexpr int REVERB_BUFFER_SIZE = 5000;
-    static constexpr int DELAY_BUFFER_SIZE = REVERB_BUFFER_SIZE * 3;
-
-    float buffer[DELAY_BUFFER_SIZE] = {0.0f};
     int bufferIndex = 0;
     float fxReverb(float signal, float amount)
     {
@@ -332,11 +333,11 @@ public:
     {
         FX_OFF,
         REVERB,
-        // REVERB2,
-        // REVERB3,
-        // DELAY,
-        // DELAY2,
-        // DELAY3,
+        REVERB2,
+        REVERB3,
+        DELAY,
+        DELAY2,
+        DELAY3,
         BASS_BOOST,
         DRIVE,
         COMPRESSION,
@@ -347,8 +348,8 @@ public:
         INVERTER,
         TREMOLO,
         RING_MOD,
-        // FX_SHIMMER_REVERB,
-        // FX_SHIMMER2_REVERB,
+        FX_SHIMMER_REVERB,
+        FX_SHIMMER2_REVERB,
         FX_FEEDBACK,
         DECIMATOR,
         LPF,
@@ -386,31 +387,31 @@ public:
             typeName = "Reverb";
             fxFn = &MultiFx::fxReverb;
         }
-        // else if (type == MultiFx::FXType::REVERB2)
-        // {
-        //     typeName = "Reverb2";
-        //     fxFn = &MultiFx::fxReverb2;
-        // }
-        // else if (type == MultiFx::FXType::REVERB3)
-        // {
-        //     typeName = "Reverb3";
-        //     fxFn = &MultiFx::fxReverb3;
-        // }
-        // else if (type == MultiFx::FXType::DELAY)
-        // {
-        //     typeName = "Delay";
-        //     fxFn = &MultiFx::fxDelay;
-        // }
-        // else if (type == MultiFx::FXType::DELAY2)
-        // {
-        //     typeName = "Delay2";
-        //     fxFn = &MultiFx::fxDelay2;
-        // }
-        // else if (type == MultiFx::FXType::DELAY3)
-        // {
-        //     typeName = "Delay3";
-        //     fxFn = &MultiFx::fxDelay3;
-        // }
+        else if (type == MultiFx::FXType::REVERB2)
+        {
+            typeName = "Reverb2";
+            fxFn = &MultiFx::fxReverb2;
+        }
+        else if (type == MultiFx::FXType::REVERB3)
+        {
+            typeName = "Reverb3";
+            fxFn = &MultiFx::fxReverb3;
+        }
+        else if (type == MultiFx::FXType::DELAY)
+        {
+            typeName = "Delay";
+            fxFn = &MultiFx::fxDelay;
+        }
+        else if (type == MultiFx::FXType::DELAY2)
+        {
+            typeName = "Delay2";
+            fxFn = &MultiFx::fxDelay2;
+        }
+        else if (type == MultiFx::FXType::DELAY3)
+        {
+            typeName = "Delay3";
+            fxFn = &MultiFx::fxDelay3;
+        }
         else if (type == MultiFx::FXType::BASS_BOOST)
         {
             typeName = "Bass boost";
@@ -461,16 +462,16 @@ public:
             typeName = "Ring mod.";
             fxFn = &MultiFx::fxRingMod;
         }
-        // else if (type == MultiFx::FXType::FX_SHIMMER_REVERB)
-        // {
-        //     typeName = "Shimmer";
-        //     fxFn = &MultiFx::fxShimmerReverb;
-        // }
-        // else if (type == MultiFx::FXType::FX_SHIMMER2_REVERB)
-        // {
-        //     typeName = "Shimmer2";
-        //     fxFn = &MultiFx::fxShimmer2Reverb;
-        // }
+        else if (type == MultiFx::FXType::FX_SHIMMER_REVERB)
+        {
+            typeName = "Shimmer";
+            fxFn = &MultiFx::fxShimmerReverb;
+        }
+        else if (type == MultiFx::FXType::FX_SHIMMER2_REVERB)
+        {
+            typeName = "Shimmer2";
+            fxFn = &MultiFx::fxShimmer2Reverb;
+        }
         else if (type == MultiFx::FXType::FX_FEEDBACK)
         {
             typeName = "Feedback";
@@ -499,17 +500,15 @@ public:
         // TODO: add fx sample reducer
     }
 
-    MultiFx(float sampleRate)
-        : sampleRate(sampleRate)
-    {
-    }
-
     MultiFx()
     {
     }
 
-    void init(float sampleRate, MultiFx::FXType type = MultiFx::FXType::FX_OFF)
+    void init(float sampleRate, uint8_t bufferId, MultiFx::FXType type = MultiFx::FXType::FX_OFF)
     {
+        if (bufferId >= BUFFER_COUNT)
+            bufferId = 0;
+        buffer = BUFFER[bufferId];
         this->sampleRate = sampleRate;
         setFxType(type);
     }

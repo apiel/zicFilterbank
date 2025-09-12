@@ -85,10 +85,10 @@ public:
     {
     }
 
-    void init(float sampleRate, MultiFx::FXType type = MultiFx::FXType::FX_OFF)
+    void init(float sampleRate, uint8_t bufferId, MultiFx::FXType type = MultiFx::FXType::FX_OFF)
     {
         this->sampleRate = sampleRate;
-        multiFx.init(sampleRate, type);
+        multiFx.init(sampleRate, bufferId, type);
         updateCoeffs();
     }
     

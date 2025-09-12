@@ -7,15 +7,16 @@
 
 #include "MultiFx.h"
 #include "BandIsolatorFx.h"
-#include "FilteredFx.h"
+// #include "FilteredFx.h"
 
 using namespace daisy;
 
 DaisySeed hw;
-MultiFx multiFx;
 Encoder encoder;
+
+MultiFx multiFx;
 BandIsolatorFx bandFx;
-FilteredFx filteredFx;
+// FilteredFx filteredFx;
 
 SSD130xI2c64x32Driver display;
 SSD130xI2c64x32Driver::Config displayCfg;
@@ -74,11 +75,11 @@ void actionBandMix(float f_value, uint16_t i_value) { bandFx.setMix(f_value); }
 void actionBandFreq(float f_value, uint16_t i_value) { bandFx.setCenterFreq(f_value); }
 void actionBandRange(float f_value, uint16_t i_value) { bandFx.setRange(f_value); }
 void actionBandFx(float f_value, uint16_t i_value) { bandFx.setFxAmount(f_value); }
-void actionFilterMix(float f_value, uint16_t i_value) { filteredFx.setMix(f_value); }
-void actionFilterCutoff(float f_value, uint16_t i_value) { filteredFx.setCutoff(f_value); }
-void actionFilterReso(float f_value, uint16_t i_value) { filteredFx.setResonance(f_value); }
-void actionFilterFeedback(float f_value, uint16_t i_value) { filteredFx.setFeedback(f_value); }
-void actionFilterFx(float f_value, uint16_t i_value) { filteredFx.setFxAmount(f_value); }
+void actionFilterMix(float f_value, uint16_t i_value) { /*filteredFx.setMix(f_value);*/ }
+void actionFilterCutoff(float f_value, uint16_t i_value) { /*filteredFx.setCutoff(f_value);*/ }
+void actionFilterReso(float f_value, uint16_t i_value) { /*filteredFx.setResonance(f_value);*/ }
+void actionFilterFeedback(float f_value, uint16_t i_value) { /*filteredFx.setFeedback(f_value);*/ }
+void actionFilterFx(float f_value, uint16_t i_value) { /*filteredFx.setFxAmount(f_value);*/ }
 
 typedef void (*ActionPtr)(float, uint16_t);
 ActionPtr actionFn = &actionNone;
@@ -113,11 +114,11 @@ void renderFx()
         text(display, 0, 0, "Master Fx", PoppinsLight_8);
         text(display, 0, 20, multiFx.typeName, PoppinsLight_8);
     }
-    else if (isFx == 1)
-    {
-        text(display, 0, 0, "Filter Fx", PoppinsLight_8);
-        text(display, 0, 20, filteredFx.multiFx.typeName, PoppinsLight_8);
-    }
+    // else if (isFx == 1)
+    // {
+    //     text(display, 0, 0, "Filter Fx", PoppinsLight_8);
+    //     text(display, 0, 20, filteredFx.multiFx.typeName, PoppinsLight_8);
+    // }
     else
     {
         text(display, 0, 0, "Band Fx", PoppinsLight_8);
@@ -145,9 +146,9 @@ int main(void)
     hw.SetAudioBlockSize(4);
     hw.StartAudio(Callback);
 
-    multiFx.init(hw.AudioSampleRate(), MultiFx::FXType::BASS_BOOST);
-    bandFx.init(hw.AudioSampleRate(), MultiFx::FXType::COMPRESSION);
-    filteredFx.init(hw.AudioSampleRate(), MultiFx::FXType::HPF);
+    multiFx.init(hw.AudioSampleRate(), 0, MultiFx::FXType::BASS_BOOST);
+    bandFx.init(hw.AudioSampleRate(), 1, MultiFx::FXType::COMPRESSION);
+    // filteredFx.init(hw.AudioSampleRate(), MultiFx::FXType::HPF);
 
     encoder.Init(ENC_A_PIN, ENC_B_PIN, ENC_CLICK_PIN);
     displayCfg.transport_config.i2c_config.pin_config.sda = seed::D12;
@@ -188,8 +189,8 @@ int main(void)
         {
             if (isFx == 0)
                 multiFx.setIncType(inc);
-            else if (isFx == 1)
-                filteredFx.multiFx.setIncType(inc);
+            // else if (isFx == 1)
+            //     filteredFx.multiFx.setIncType(inc);
             else
                 bandFx.multiFx.setIncType(inc);
 
