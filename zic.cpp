@@ -5,13 +5,15 @@
 
 #include "fonts/drawText.h"
 
-#include "effects/MultiFx.h"
+#include "MultiFx.h"
+#include "BandIsolatorFx.h"
 
 using namespace daisy;
 
 DaisySeed hw;
 MultiFx multiFx;
 Encoder encoder;
+BandIsolatorFx bandFx;
 
 SSD130xI2c64x32Driver display;
 SSD130xI2c64x32Driver::Config displayCfg;
@@ -44,15 +46,12 @@ std::string pctStrValue(float f_value, uint16_t i_value)
 
 std::string freqStrValue(float f_value, uint16_t i_value)
 {
-    float freq = 20.0f * powf(10000.0f / 20.0f, f_value);
-    return std::to_string(static_cast<uint>(freq));
+    return std::to_string(static_cast<uint>(bandFx.centerFreq));
 }
 
 std::string rangeStrValue(float f_value, uint16_t i_value)
 {
-    // return std::to_string(static_cast<uint>(f_value * 5000.0f));
-    float range = 10.0f * powf(5000.0f / 10.0f, f_value);
-    return std::to_string(static_cast<uint>(range));
+    return std::to_string(static_cast<uint>(bandFx.rangeHz));
 }
 
 std::string filterStrValue(float f_value, uint16_t i_value)
@@ -68,12 +67,28 @@ StrPtr strFn = &pctStrValue;
 
 StrPtr knobGetString[NUM_KNOBS] = {&pctStrValue, &freqStrValue, &rangeStrValue, &pctStrValue, &pctStrValue, &filterStrValue, &pctStrValue, &pctStrValue, &pctStrValue, &pctStrValue};
 
+void actionNone(float f_value, uint16_t i_value) {}
+void actionBandMix(float f_value, uint16_t i_value) { bandFx.setMix(f_value); }
+void actionBandFreq(float f_value, uint16_t i_value) { bandFx.setCenterFreq(f_value); }
+void actionBandRange(float f_value, uint16_t i_value) { bandFx.setRange(f_value); }
+void actionBandFx(float f_value, uint16_t i_value) { bandFx.setFxAmount(f_value); }
+// void actionFilterMix(float f_value, uint16_t i_value) { multiFx.setMix(f_value); }
+// void actionFilterCutoff(float f_value, uint16_t i_value) { multiFx.setCutoff(f_value); }
+// void actionFilterReso(float f_value, uint16_t i_value) { multiFx.setResonance(f_value); }
+// void actionFilterFeedback(float f_value, uint16_t i_value) { multiFx.setFeedback(f_value); }
+// void actionFilterFx(float f_value, uint16_t i_value) { multiFx.setFxAmount(f_value); }
+// void actionMasterFx(float f_value, uint16_t i_value) { multiFx.setType(f_value); }
+
+typedef void (*ActionPtr)(float, uint16_t);
+ActionPtr actionFn = &actionNone;
+ActionPtr knobActions[NUM_KNOBS] = {&actionBandMix, &actionBandFreq, &actionBandRange, &actionBandFx, &actionNone, &actionNone, &actionNone, &actionNone, &actionNone, &actionNone};
+
 // Encoder
 constexpr Pin ENC_A_PIN = seed::D8;
 constexpr Pin ENC_B_PIN = seed::D10;
 constexpr Pin ENC_CLICK_PIN = seed::D9;
 
-bool isFx1 = true;
+uint8_t isFx = 0;
 
 static void Callback(AudioHandle::InterleavingInputBuffer in,
                      AudioHandle::InterleavingOutputBuffer out,
@@ -81,19 +96,25 @@ static void Callback(AudioHandle::InterleavingInputBuffer in,
 {
     for (size_t i = 0; i < size; i++)
     {
-        float input = in[i];
-        float output = multiFx.apply(input, 1.0f);
-        out[i] = output;
+        float output = in[i];
+        output = bandFx.sample(output);
+        output = multiFx.apply(output, knobValuesFloat[MASTER_FX]);
+        out[i] = clamp(output, -1.0f, 1.0f);
     }
 }
 
 void renderFx()
 {
     display.Fill(false);
-    if (isFx1)
+    if (isFx == 0)
+    {
+        text(display, 0, 0, "Master Fx", PoppinsLight_8);
+        text(display, 0, 20, multiFx.typeName, PoppinsLight_8);
+    }
+    else if (isFx == 1)
     {
         text(display, 0, 0, "Fx 1", PoppinsLight_8);
-        text(display, 0, 20, multiFx.typeName, PoppinsLight_8);
+        text(display, 0, 20, bandFx.multiFx.typeName, PoppinsLight_8);
     }
     else
     {
@@ -112,7 +133,7 @@ void renderKnob(std::string knobName, float f_value, uint16_t i_value, Knob knob
     display.Update();
 }
 
-float getKnobValue(Knob knob) { return range(hw.adc.GetFloat(knob), 0.0f, 0.96f) / 0.96f; }
+float getKnobValue(Knob knob) { return clamp(hw.adc.GetFloat(knob), 0.0f, 0.96f) / 0.96f; }
 uint16_t f2i(float f) { return static_cast<uint16_t>(static_cast<uint>(f * 100000) * 0.001); }
 
 int main(void)
@@ -120,7 +141,10 @@ int main(void)
     hw.Init();
     hw.SetAudioBlockSize(4);
     hw.StartAudio(Callback);
-    multiFx.init(hw.AudioSampleRate(), MultiFx::FXType::REVERB);
+    
+    multiFx.init(hw.AudioSampleRate());
+    bandFx.init(hw.AudioSampleRate(), MultiFx::FXType::CLIPPING);
+
     encoder.Init(ENC_A_PIN, ENC_B_PIN, ENC_CLICK_PIN);
     displayCfg.transport_config.i2c_config.pin_config.sda = seed::D12;
     displayCfg.transport_config.i2c_config.pin_config.scl = seed::D11;
@@ -157,12 +181,15 @@ int main(void)
         int32_t inc = encoder.Increment();
         if (inc)
         {
-            multiFx.setIncType(inc);
+            if (isFx == 0)
+                multiFx.setIncType(inc);
+            else if (isFx == 1)
+                bandFx.multiFx.setIncType(inc);
             renderFx();
         }
         if (encoder.RisingEdge())
         {
-            isFx1 = !isFx1;
+            isFx = (isFx + 1) % 3;
             renderFx();
         }
 
@@ -177,11 +204,12 @@ int main(void)
                     knobValuesPrev[i] = knobValues[i];
                     knobValues[i] = i_value;
                     knobValuesFloat[i] = f_value;
+                    knobActions[i](f_value, i_value);
                     renderKnob(knobNames[i], f_value, i_value, (Knob)i);
                 }
             }
         }
 
-        System::Delay(1);
+        System::Delay(10);
     }
 }

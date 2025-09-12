@@ -1,7 +1,7 @@
 #pragma once
 
 #include "applyReverb.h"
-#include "../range.h"
+#include "clamp.h"
 
 #include <algorithm>
 #include <string>
@@ -118,7 +118,7 @@ protected:
             return input;
         }
         float scaledClipping = amount * amount * 20;
-        return range(input + input * scaledClipping, -1.0f, 1.0f);
+        return clamp(input + input * scaledClipping, -1.0f, 1.0f);
     }
 
     float sampleSqueeze;
