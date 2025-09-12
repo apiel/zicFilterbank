@@ -68,6 +68,7 @@
         "thread": "cpp",
         "typeinfo": "cpp",
         "variant": "cpp",
-        "__tree": "cpp"
+        "__tree": "cpp",
+        "locale": "cpp"
     }
 }
