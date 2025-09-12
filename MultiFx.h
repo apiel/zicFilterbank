@@ -7,7 +7,7 @@
 
 constexpr uint8_t BUFFER_COUNT = 5;
 
-// #define USE_SDRAM
+#define USE_SDRAM
 #ifdef USE_SDRAM
 constexpr int REVERB_BUFFER_SIZE = 48000;                 // 1 second buffer at 48kHz
 constexpr int DELAY_BUFFER_SIZE = REVERB_BUFFER_SIZE * 3; // 3 second
@@ -448,6 +448,12 @@ public:
         buffer = BUFFER[bufferId];
         this->sampleRate = sampleRate;
         setFxType(type);
+
+        // Clear buffer
+        for (int i = 0; i < REVERB_BUFFER_SIZE; i++)
+        {
+            buffer[i] = 0.0f;
+        }
     }
 
     // Get one sample after the other
