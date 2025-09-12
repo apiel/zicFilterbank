@@ -7,6 +7,7 @@
 
 #include "MultiFx.h"
 #include "BandIsolatorFx.h"
+#include "FilteredFx.h"
 
 using namespace daisy;
 
@@ -14,6 +15,7 @@ DaisySeed hw;
 MultiFx multiFx;
 Encoder encoder;
 BandIsolatorFx bandFx;
+FilteredFx filteredFx;
 
 SSD130xI2c64x32Driver display;
 SSD130xI2c64x32Driver::Config displayCfg;
@@ -72,16 +74,15 @@ void actionBandMix(float f_value, uint16_t i_value) { bandFx.setMix(f_value); }
 void actionBandFreq(float f_value, uint16_t i_value) { bandFx.setCenterFreq(f_value); }
 void actionBandRange(float f_value, uint16_t i_value) { bandFx.setRange(f_value); }
 void actionBandFx(float f_value, uint16_t i_value) { bandFx.setFxAmount(f_value); }
-// void actionFilterMix(float f_value, uint16_t i_value) { multiFx.setMix(f_value); }
-// void actionFilterCutoff(float f_value, uint16_t i_value) { multiFx.setCutoff(f_value); }
-// void actionFilterReso(float f_value, uint16_t i_value) { multiFx.setResonance(f_value); }
-// void actionFilterFeedback(float f_value, uint16_t i_value) { multiFx.setFeedback(f_value); }
-// void actionFilterFx(float f_value, uint16_t i_value) { multiFx.setFxAmount(f_value); }
-// void actionMasterFx(float f_value, uint16_t i_value) { multiFx.setType(f_value); }
+void actionFilterMix(float f_value, uint16_t i_value) { filteredFx.setMix(f_value); }
+void actionFilterCutoff(float f_value, uint16_t i_value) { filteredFx.setCutoff(f_value); }
+void actionFilterReso(float f_value, uint16_t i_value) { filteredFx.setResonance(f_value); }
+void actionFilterFeedback(float f_value, uint16_t i_value) { filteredFx.setFeedback(f_value); }
+void actionFilterFx(float f_value, uint16_t i_value) { filteredFx.setFxAmount(f_value); }
 
 typedef void (*ActionPtr)(float, uint16_t);
 ActionPtr actionFn = &actionNone;
-ActionPtr knobActions[NUM_KNOBS] = {&actionBandMix, &actionBandFreq, &actionBandRange, &actionBandFx, &actionNone, &actionNone, &actionNone, &actionNone, &actionNone, &actionNone};
+ActionPtr knobActions[NUM_KNOBS] = {&actionBandMix, &actionBandFreq, &actionBandRange, &actionBandFx, &actionFilterMix, &actionFilterCutoff, &actionFilterReso, &actionFilterFeedback, &actionFilterFx, &actionNone};
 
 // Encoder
 constexpr Pin ENC_A_PIN = seed::D8;
@@ -98,6 +99,7 @@ static void Callback(AudioHandle::InterleavingInputBuffer in,
     {
         float output = in[i];
         output = bandFx.sample(output);
+        // output = filteredFx.sample(output);
         output = multiFx.apply(output, knobValuesFloat[MASTER_FX]);
         out[i] = clamp(output, -1.0f, 1.0f);
     }
@@ -113,12 +115,13 @@ void renderFx()
     }
     else if (isFx == 1)
     {
-        text(display, 0, 0, "Fx 1", PoppinsLight_8);
-        text(display, 0, 20, bandFx.multiFx.typeName, PoppinsLight_8);
+        text(display, 0, 0, "Filter Fx", PoppinsLight_8);
+        text(display, 0, 20, filteredFx.multiFx.typeName, PoppinsLight_8);
     }
     else
     {
-        text(display, 0, 0, "Fx 2", PoppinsLight_8);
+        text(display, 0, 0, "Band Fx", PoppinsLight_8);
+        text(display, 0, 20, bandFx.multiFx.typeName, PoppinsLight_8);
     }
     display.Update();
 }
@@ -141,9 +144,10 @@ int main(void)
     hw.Init();
     hw.SetAudioBlockSize(4);
     hw.StartAudio(Callback);
-    
-    multiFx.init(hw.AudioSampleRate());
-    bandFx.init(hw.AudioSampleRate(), MultiFx::FXType::CLIPPING);
+
+    multiFx.init(hw.AudioSampleRate(), MultiFx::FXType::BASS_BOOST);
+    bandFx.init(hw.AudioSampleRate(), MultiFx::FXType::COMPRESSION);
+    filteredFx.init(hw.AudioSampleRate(), MultiFx::FXType::HPF);
 
     encoder.Init(ENC_A_PIN, ENC_B_PIN, ENC_CLICK_PIN);
     displayCfg.transport_config.i2c_config.pin_config.sda = seed::D12;
@@ -172,6 +176,7 @@ int main(void)
         uint16_t i_value = f2i(f_value);
         knobValues[i] = i_value;
         knobValuesFloat[i] = f_value;
+        knobActions[i](f_value, i_value);
     }
 
     renderFx();
@@ -184,7 +189,10 @@ int main(void)
             if (isFx == 0)
                 multiFx.setIncType(inc);
             else if (isFx == 1)
+                filteredFx.multiFx.setIncType(inc);
+            else
                 bandFx.multiFx.setIncType(inc);
+
             renderFx();
         }
         if (encoder.RisingEdge())

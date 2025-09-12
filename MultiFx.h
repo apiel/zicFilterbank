@@ -21,7 +21,10 @@ protected:
     // static constexpr int REVERB_BUFFER_SIZE = 48000;                 // 1 second buffer at 48kHz
     // static constexpr int DELAY_BUFFER_SIZE = REVERB_BUFFER_SIZE * 3; // 3 second
 
-    static constexpr int REVERB_BUFFER_SIZE = 20000;
+    // static constexpr int REVERB_BUFFER_SIZE = 20000;
+    // static constexpr int DELAY_BUFFER_SIZE = REVERB_BUFFER_SIZE * 3;
+
+    static constexpr int REVERB_BUFFER_SIZE = 5000;
     static constexpr int DELAY_BUFFER_SIZE = REVERB_BUFFER_SIZE * 3;
 
     float buffer[DELAY_BUFFER_SIZE] = {0.0f};
@@ -329,8 +332,8 @@ public:
     {
         FX_OFF,
         REVERB,
-        REVERB2,
-        REVERB3,
+        // REVERB2,
+        // REVERB3,
         // DELAY,
         // DELAY2,
         // DELAY3,
@@ -344,8 +347,8 @@ public:
         INVERTER,
         TREMOLO,
         RING_MOD,
-        FX_SHIMMER_REVERB,
-        FX_SHIMMER2_REVERB,
+        // FX_SHIMMER_REVERB,
+        // FX_SHIMMER2_REVERB,
         FX_FEEDBACK,
         DECIMATOR,
         LPF,
@@ -383,16 +386,16 @@ public:
             typeName = "Reverb";
             fxFn = &MultiFx::fxReverb;
         }
-        else if (type == MultiFx::FXType::REVERB2)
-        {
-            typeName = "Reverb2";
-            fxFn = &MultiFx::fxReverb2;
-        }
-        else if (type == MultiFx::FXType::REVERB3)
-        {
-            typeName = "Reverb3";
-            fxFn = &MultiFx::fxReverb3;
-        }
+        // else if (type == MultiFx::FXType::REVERB2)
+        // {
+        //     typeName = "Reverb2";
+        //     fxFn = &MultiFx::fxReverb2;
+        // }
+        // else if (type == MultiFx::FXType::REVERB3)
+        // {
+        //     typeName = "Reverb3";
+        //     fxFn = &MultiFx::fxReverb3;
+        // }
         // else if (type == MultiFx::FXType::DELAY)
         // {
         //     typeName = "Delay";
@@ -458,16 +461,16 @@ public:
             typeName = "Ring mod.";
             fxFn = &MultiFx::fxRingMod;
         }
-        else if (type == MultiFx::FXType::FX_SHIMMER_REVERB)
-        {
-            typeName = "Shimmer";
-            fxFn = &MultiFx::fxShimmerReverb;
-        }
-        else if (type == MultiFx::FXType::FX_SHIMMER2_REVERB)
-        {
-            typeName = "Shimmer2";
-            fxFn = &MultiFx::fxShimmer2Reverb;
-        }
+        // else if (type == MultiFx::FXType::FX_SHIMMER_REVERB)
+        // {
+        //     typeName = "Shimmer";
+        //     fxFn = &MultiFx::fxShimmerReverb;
+        // }
+        // else if (type == MultiFx::FXType::FX_SHIMMER2_REVERB)
+        // {
+        //     typeName = "Shimmer2";
+        //     fxFn = &MultiFx::fxShimmer2Reverb;
+        // }
         else if (type == MultiFx::FXType::FX_FEEDBACK)
         {
             typeName = "Feedback";
