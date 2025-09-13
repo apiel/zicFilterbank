@@ -62,6 +62,6 @@ For detailed setup instructions, check the [official Daisy documentation](https:
 
 The PCB has been designed using EasyEDA. To access the project, use the following link:
 
-https://easyeda.com/editor#id=57cdab183324478abfeacd5e8697b9e6|a471f378a96b47019cbb56552ec53f15
+https://easyeda.com/editor#id=a471f378a96b47019cbb56552ec53f15
 
 <img src='https://github.com/apiel/zicFilterbank/blob/main/assets/filterbank_pcb.png?raw=true' width='700'>
