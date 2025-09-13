@@ -1,6 +1,6 @@
-# zicFilterbank
+# Zic Filterbank
 
-**zicFilterbank** is a custom filterbank-to-FX box built with Daisy Seed, slightly inspired by the Sherman Filterbank, but very different in design.
+**Zic Filterbank** is a custom filterbank-to-FX box built with Daisy Seed, slightly inspired by the Sherman Filterbank, but very different in design.
 
 Instead of boosting frequency bands like a traditional filterbank, this project applies **different audio effects** (distortion, drive, compression, bitcrusher, etc.) to selected frequency ranges while keeping the rest of the signal clean. On top of the band FX, there’s also a master FX section.
 
