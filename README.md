@@ -9,10 +9,10 @@ The goal is to add character and punch to drum machines (like the Korg Electribe
 <table>
 <tr>
 <td>
-<img src='https://github.com/apiel/zicFilterbank/blob/main/assets/filterbank1.png?raw=true' width='300'>
+<img src='https://github.com/apiel/zicFilterbank/blob/main/assets/filterbank1.png?raw=true' width='400'>
 </td>
 <td>
-<img src='https://github.com/apiel/zicFilterbank/blob/main/assets/filterbank2.png?raw=true' width='300'>
+<img src='https://github.com/apiel/zicFilterbank/blob/main/assets/filterbank2.png?raw=true' width='400'>
 </td>
 </tr>
 <table>
