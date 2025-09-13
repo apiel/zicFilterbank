@@ -14,13 +14,14 @@ struct StorageSettings
 {
     MultiFx::FXType bandFx1;
     MultiFx::FXType bandFx2;
+    MultiFx::FXType bandFx3;
     MultiFx::FXType masterFx1;
     MultiFx::FXType masterFx2;
-    MultiFx::FXType masterFx3;
+    float volume;
 
     bool operator!=(const StorageSettings &a) const
     {
-        return !(a.bandFx1 == bandFx1 && a.bandFx2 == bandFx2 && a.masterFx1 == masterFx1 && a.masterFx2 == masterFx2 && a.masterFx3 == masterFx3);
+        return !(a.bandFx1 == bandFx1 && a.bandFx2 == bandFx2 && a.bandFx3 == bandFx3 && a.masterFx1 == masterFx1 && a.masterFx2 == masterFx2 && a.volume == volume);
     }
 };
 
@@ -30,7 +31,6 @@ PersistentStorage<StorageSettings> storage(hw.qspi);
 
 MultiFx multiFx1;
 MultiFx multiFx2;
-MultiFx multiFx3;
 BandIsolatorFx bandFx;
 
 SSD130xI2c64x32Driver display;
@@ -54,11 +54,11 @@ enum Knob
     BAND_RANGE,
     BAND_FX,
     BAND_FX2,
+    BAND_FX3,
     BAND_CUTOFF,
     BAND_RESONANCE,
     MASTER_FX1,
     MASTER_FX2,
-    MASTER_FX3,
     NUM_KNOBS
 };
 
@@ -94,6 +94,7 @@ void actionBandFreq(float f_value, uint16_t i_value) { bandFx.setCenterFreq(f_va
 void actionBandRange(float f_value, uint16_t i_value) { bandFx.setRange(f_value); }
 void actionBandFx(float f_value, uint16_t i_value) { bandFx.setFxAmount(f_value); }
 void actionBandFx2(float f_value, uint16_t i_value) { bandFx.setFx2Amount(f_value); }
+void actionBandFx3(float f_value, uint16_t i_value) { bandFx.setFx3Amount(f_value); }
 void actionFilterCutoff(float f_value, uint16_t i_value)
 {
     float amount = f_value * 2 - 1.0f;
@@ -108,10 +109,10 @@ AdcChannelConfig knobCfgs[NUM_KNOBS];
 uint16_t knobValues[NUM_KNOBS];
 uint16_t knobValuesPrev[NUM_KNOBS];
 float knobValuesFloat[NUM_KNOBS];
-std::string knobNames[NUM_KNOBS] = {"Band Mix", "Band Freq", "Band Range", "Band Fx 1", "Band Fx 2", "Filter Cutoff", "Resonance", "Master Fx 1", "Master Fx 2", "Master Fx 3"};
+std::string knobNames[NUM_KNOBS] = {"Band Mix", "Band Freq", "Band Range", "Band Fx 1", "Band Fx 2", "Band Fx 3", "Filter Cutoff", "Resonance", "Master Fx 1", "Master Fx 2"};
 std::string knobUnits[NUM_KNOBS] = {"%", "Hz", "Hz", "%", "%", "%", "%", "%", "%", "%"};
-StrPtr knobGetString[NUM_KNOBS] = {&pctStrValue, &freqStrValue, &rangeStrValue, &pctStrValue, &pctStrValue, &filterStrValue, &pctStrValue, &pctStrValue, &pctStrValue, &pctStrValue};
-ActionPtr knobActions[NUM_KNOBS] = {&actionBandMix, &actionBandFreq, &actionBandRange, &actionBandFx, &actionBandFx2, &actionFilterCutoff, &actionFilterReso, &actionNone, &actionNone, &actionNone};
+StrPtr knobGetString[NUM_KNOBS] = {&pctStrValue, &freqStrValue, &rangeStrValue, &pctStrValue, &pctStrValue, &pctStrValue, &filterStrValue, &pctStrValue, &pctStrValue, &pctStrValue};
+ActionPtr knobActions[NUM_KNOBS] = {&actionBandMix, &actionBandFreq, &actionBandRange, &actionBandFx, &actionBandFx2, &actionBandFx3, &actionFilterCutoff, &actionFilterReso, &actionNone, &actionNone};
 
 // Encoder
 constexpr Pin ENC_A_PIN = seed::D8;
@@ -119,6 +120,7 @@ constexpr Pin ENC_B_PIN = seed::D10;
 constexpr Pin ENC_CLICK_PIN = seed::D9;
 
 uint8_t isFx = 0;
+float volume = 1.0f;
 
 static void Callback(AudioHandle::InterleavingInputBuffer in,
                      AudioHandle::InterleavingOutputBuffer out,
@@ -130,9 +132,17 @@ static void Callback(AudioHandle::InterleavingInputBuffer in,
         output = bandFx.sample(output);
         output = multiFx1.apply(output, knobValuesFloat[MASTER_FX1]);
         output = multiFx2.apply(output, knobValuesFloat[MASTER_FX2]);
-        output = multiFx3.apply(output, knobValuesFloat[MASTER_FX3]);
-        out[i] = clamp(output, -1.0f, 1.0f);
+        out[i] = clamp(output * volume, -1.0f, 1.0f);
     }
+}
+
+void renderNumValue(std::string title, std::string value, std::string unit)
+{
+    display.Fill(false);
+    text(display, 0, 0, title, PoppinsLight_8);
+    int x = text(display, 0, 16, value, PoppinsLight_12);
+    text(display, x + 2, 20, unit, PoppinsLight_8);
+    display.Update();
 }
 
 void renderFx()
@@ -150,30 +160,29 @@ void renderFx()
     }
     else if (isFx == 2)
     {
+        text(display, 0, 0, "Band Fx 3", PoppinsLight_8);
+        text(display, 0, 20, bandFx.multiFx3.typeName, PoppinsLight_8);
+    }
+    else if (isFx == 3)
+    {
         text(display, 0, 0, "Master Fx 1", PoppinsLight_8);
         text(display, 0, 20, multiFx1.typeName, PoppinsLight_8);
     }
-    else if (isFx == 3)
+    else if (isFx == 4)
     {
         text(display, 0, 0, "Master Fx 2", PoppinsLight_8);
         text(display, 0, 20, multiFx2.typeName, PoppinsLight_8);
     }
     else
     {
-        text(display, 0, 0, "Master Fx 3", PoppinsLight_8);
-        text(display, 0, 20, multiFx3.typeName, PoppinsLight_8);
+        renderNumValue("Volume", std::to_string((int)(volume * 100)) + "%", "%");
     }
     display.Update();
 }
 
 void renderKnob(std::string knobName, float f_value, uint16_t i_value, Knob knob)
 {
-    display.Fill(false);
-    text(display, 0, 0, knobName, PoppinsLight_8);
-    // int x = text(display, 0, 16, std::to_string(value), PoppinsLight_12);
-    int x = text(display, 0, 16, knobGetString[knob](f_value, i_value), PoppinsLight_12);
-    text(display, x + 2, 20, knobUnits[knob], PoppinsLight_8);
-    display.Update();
+    renderNumValue(knobName, knobGetString[knob](f_value, i_value), knobUnits[knob]);
 }
 
 float getKnobValue(Knob knob) { return clamp(hw.adc.GetFloat(knob), 0.0f, 0.96f) / 0.96f; }
@@ -185,20 +194,20 @@ int main(void)
     hw.SetAudioBlockSize(4);
     hw.StartAudio(Callback);
 
-    StorageSettings defaultConfig = {MultiFx::FXType::COMPRESSION, MultiFx::FXType::FX_OFF, MultiFx::FXType::BASS_BOOST, MultiFx::FXType::FX_OFF, MultiFx::FXType::FX_OFF};
+    StorageSettings defaultConfig = {MultiFx::FXType::COMPRESSION, MultiFx::FXType::FX_OFF, MultiFx::FXType::FX_OFF, MultiFx::FXType::BASS_BOOST, MultiFx::FXType::FX_OFF, 1.0f};
     storage.Init(defaultConfig);
 
-    bandFx.init(hw.AudioSampleRate(), 0, 1, MultiFx::FXType::COMPRESSION);
-    multiFx1.init(hw.AudioSampleRate(), 2, MultiFx::FXType::BASS_BOOST);
-    multiFx2.init(hw.AudioSampleRate(), 3, MultiFx::FXType::FX_OFF);
-    multiFx3.init(hw.AudioSampleRate(), 4, MultiFx::FXType::FX_OFF);
+    bandFx.init(hw.AudioSampleRate(), 0, 1, 2, MultiFx::FXType::COMPRESSION);
+    multiFx1.init(hw.AudioSampleRate(), 3, MultiFx::FXType::BASS_BOOST);
+    multiFx2.init(hw.AudioSampleRate(), 4, MultiFx::FXType::FX_OFF);
 
     StorageSettings &config = storage.GetSettings();
     bandFx.multiFx.setFxType(config.bandFx1);
     bandFx.multiFx2.setFxType(config.bandFx2);
+    bandFx.multiFx3.setFxType(config.bandFx3);
     multiFx1.setFxType(config.masterFx1);
     multiFx2.setFxType(config.masterFx2);
-    multiFx3.setFxType(config.masterFx3);
+    volume = config.volume;
 
     encoder.Init(ENC_A_PIN, ENC_B_PIN, ENC_CLICK_PIN);
     displayCfg.transport_config.i2c_config.pin_config.sda = seed::D12;
@@ -214,9 +223,9 @@ int main(void)
     knobCfgs[BAND_CUTOFF].InitSingle(KNOB_6);
 
     knobCfgs[BAND_FX2].InitSingle(KNOB_7);
-    knobCfgs[MASTER_FX1].InitSingle(KNOB_8);
-    knobCfgs[MASTER_FX2].InitSingle(KNOB_9);
-    knobCfgs[MASTER_FX3].InitSingle(KNOB_10);
+    knobCfgs[BAND_FX3].InitSingle(KNOB_8);
+    knobCfgs[MASTER_FX1].InitSingle(KNOB_9);
+    knobCfgs[MASTER_FX2].InitSingle(KNOB_10);
 
     hw.adc.Init(knobCfgs, 10);
     hw.adc.Start();
@@ -251,28 +260,35 @@ int main(void)
             }
             else if (isFx == 2)
             {
-                multiFx1.setIncType(inc);
-                config.masterFx1 = multiFx1.fxType;
+                bandFx.multiFx3.setIncType(inc);
+                config.bandFx3 = bandFx.multiFx3.fxType;
                 storage.Save();
             }
             else if (isFx == 3)
             {
+                multiFx1.setIncType(inc);
+                config.masterFx1 = multiFx1.fxType;
+                storage.Save();
+            }
+            else if (isFx == 4)
+            {
                 multiFx2.setIncType(inc);
                 config.masterFx2 = multiFx2.fxType;
                 storage.Save();
-            }
+            } 
             else
             {
-                multiFx3.setIncType(inc);
-                config.masterFx3 = multiFx3.fxType;
+                volume += inc * 0.05f;
+                volume = clamp(volume, 0.0f, 1.0f);
+                config.volume = volume;
                 storage.Save();
-            }
+            } 
 
             renderFx();
         }
         if (encoder.RisingEdge())
         {
-            isFx = (isFx + 1) % 5;
+            isFx = (isFx + 1) % 6;
             renderFx();
         }
 
