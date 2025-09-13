@@ -65,3 +65,7 @@ The PCB has been designed using EasyEDA. To access the project, use the followin
 https://easyeda.com/editor#id=a471f378a96b47019cbb56552ec53f15
 
 <img src='https://github.com/apiel/zicFilterbank/blob/main/assets/filterbank_pcb.png?raw=true' width='700'>
+
+https://easyeda.com/editor#id=ba950a98b9194fd0b9de4e008d2ef155
+
+<img src='https://github.com/apiel/zicFilterbank/blob/main/assets/filterbank_pcb_top.png?raw=true' width='700'>
