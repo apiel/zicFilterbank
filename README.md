@@ -1,25 +1,59 @@
-```
+# zicFilterbank
+
+**zicFilterbank** is a custom filterbank-to-FX box built with Daisy Seed, slightly inspired by the Sherman Filterbank, but very different in design.
+
+Instead of boosting frequency bands like a traditional filterbank, this project applies **different audio effects** (distortion, drive, compression, bitcrusher, etc.) to selected frequency ranges while keeping the rest of the signal clean. On top of the band FX, there’s also a master FX section.
+
+The goal is to add character and punch to drum machines (like the Korg Electribe ER-1) or any other audio source, while keeping control over how much of the signal is affected.
+
+<img src='https://github.com/apiel/zicFilterbank/blob/main/assets/filterbank1.png?raw=true' width='300'>
+<img src='https://github.com/apiel/zicFilterbank/blob/main/assets/filterbank2.png?raw=true' width='300'>
+
+## ✨ Features
+
+- Band FX processing (only affect chosen frequency ranges): **3 chained FX + Multimode resonant filter**
+- Master FX section on top of band FX: **2 chained FX**
+- Multiple FX types:
+  - Drive, compression, clipping
+  - Bitcrusher, sample reducer, decimator
+  - Tremolo, ring modulation, inverter
+  - Filters (low-pass, high-pass, distorted HPF)
+  - multiple Reverbs and Delays
+
+Built on Daisy Seed using DaisySP and libDaisy.
+
+## 🚀 Getting Started
+Clone the repository (with submodules)
+```sh
 git clone --recurse-submodules https://github.com/apiel/zicFilterbank.git
+cd zicFilterbank
 ```
 
-might have to do this the first time:
-```
+Build dependencies (first time only)
+```sh
 cd libDaisy
-make clean
-make
+make clean && make
 cd ../DaisySP
-make clean
+make clean && make
+cd ..
+```
+
+Build the project
+```
 make
 ```
 
-build by running
-
-```
-make
-```
-
-upload with:
-
+Upload to Daisy Seed (Seed must be in DFU bootloader mode)
 ```
 make program-dfu
 ```
+
+For detailed setup instructions, check the [official Daisy documentation](https://electro-smith.github.io/libDaisy/).
+
+## PCB
+
+The PCB has been designed using EasyEDA. To access the project, use the following link:
+
+https://easyeda.com/editor#id=57cdab183324478abfeacd5e8697b9e6|a471f378a96b47019cbb56552ec53f15
+
+<img src='https://github.com/apiel/zicFilterbank/blob/main/assets/filterbank_pcb.png?raw=true' width='700'>
