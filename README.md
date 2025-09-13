@@ -6,8 +6,16 @@ Instead of boosting frequency bands like a traditional filterbank, this project 
 
 The goal is to add character and punch to drum machines (like the Korg Electribe ER-1) or any other audio source, while keeping control over how much of the signal is affected.
 
+<table>
+<tr>
+<td>
 <img src='https://github.com/apiel/zicFilterbank/blob/main/assets/filterbank1.png?raw=true' width='300'>
+</td>
+<td>
 <img src='https://github.com/apiel/zicFilterbank/blob/main/assets/filterbank2.png?raw=true' width='300'>
+</td>
+</tr>
+<table>
 
 ## ✨ Features
 
