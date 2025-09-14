@@ -9,17 +9,19 @@ constexpr uint8_t BUFFER_COUNT = 5;
 #ifdef USE_SDRAM
 // constexpr int REVERB_BUFFER_SIZE = 48000;                 // 1 second buffer at 48kHz
 constexpr int REVERB_BUFFER_SIZE = 100000;
-constexpr int DELAY_BUFFER_SIZE = REVERB_BUFFER_SIZE * 3;
-float DSY_SDRAM_BSS BUFFER[BUFFER_COUNT][DELAY_BUFFER_SIZE + 10000]; // + 10k for safety
+constexpr int DELAY_BUFFER_SIZE = REVERB_BUFFER_SIZE * 2;
+// float DSY_SDRAM_BSS BUFFER[BUFFER_COUNT][DELAY_BUFFER_SIZE + 10000]; // + 10k for safety
+float DSY_SDRAM_BSS BUFFER[BUFFER_COUNT][DELAY_BUFFER_SIZE * 2]; // *2 for safety
 #else
 constexpr int REVERB_BUFFER_SIZE = 125000 / BUFFER_COUNT;
 constexpr int DELAY_BUFFER_SIZE = REVERB_BUFFER_SIZE;
 float BUFFER[BUFFER_COUNT][DELAY_BUFFER_SIZE];
 #endif
 
-float applyReverb(float signal, float reverbAmount, float* reverbBuffer, int& reverbIndex)
+float applyReverb(float signal, float reverbAmount, float *reverbBuffer, int &reverbIndex)
 {
-    if (reverbAmount == 0.0f) {
+    if (reverbAmount == 0.0f)
+    {
         return signal;
     }
 
@@ -35,14 +37,16 @@ float applyReverb(float signal, float reverbAmount, float* reverbBuffer, int& re
     return signal * (1.0f - mix) + reverbSignal * mix;
 }
 
-struct BufferVoice {
-    int delay; // Fixed delay offset
+struct BufferVoice
+{
+    float delay;
     float gain;
 };
 
-float processDelayAndReverb(float signal, float amount, float* buffer, int& index, int bufferSize, int voiceCount, BufferVoice* voices)
+float processDelayAndReverb(float signal, float amount, float *buffer, int &index, int bufferSize, int voiceCount, BufferVoice *voices)
 {
-    if (amount == 0.0f) {
+    if (amount == 0.0f)
+    {
         return signal;
     }
 
@@ -52,8 +56,10 @@ float processDelayAndReverb(float signal, float amount, float* buffer, int& inde
     float reverbOut = 0.0f;
 
     // Process only 4 key delay taps
-    for (uint8_t i = 0; i < voiceCount; i++) {
-        int readIndex = (index + bufferSize - voices[i].delay) % bufferSize;
+    for (uint8_t i = 0; i < voiceCount; i++)
+    {
+        int delay = voices[i].delay * bufferSize;
+        int readIndex = (index + bufferSize - delay) % bufferSize;
         reverbOut += buffer[readIndex] * voices[i].gain;
     }
 
@@ -66,67 +72,68 @@ float processDelayAndReverb(float signal, float amount, float* buffer, int& inde
 
     // Final wet/dry mix
     float mix = amount * 0.8f;
+    // float mix = powf(amount, 2.0f) * 0.9f; // smoother response
     return signal * (1.0f - mix) + reverbOut * mix;
 }
 
 static constexpr int ReverbVoiceCount = 4; // Reduced from 8 to 4 for efficiency
 BufferVoice reverbVoices[ReverbVoiceCount] = {
-    { (int)(REVERB_BUFFER_SIZE * 0.2), 0.6f }, // First early reflection
-    { (int)(REVERB_BUFFER_SIZE * 0.4), 0.4f }, // Mid reflection
-    { (int)(REVERB_BUFFER_SIZE * 0.6), 0.3f }, // Late reflection
-    { (int)(REVERB_BUFFER_SIZE * 0.8), 0.2f }, // Very late tail
+    {0.2, 0.6f}, // First early reflection
+    {0.4, 0.4f}, // Mid reflection
+    {0.6, 0.3f}, // Late reflection
+    {0.8, 0.2f}, // Very late tail
 };
-float applyReverb2(float signal, float amount, float* reverbBuffer, int& reverbIndex)
+float applyReverb2(float signal, float amount, float *reverbBuffer, int &reverbIndex)
 {
     return processDelayAndReverb(signal, amount, reverbBuffer, reverbIndex, REVERB_BUFFER_SIZE, ReverbVoiceCount, reverbVoices);
 }
 
 BufferVoice reverb3Voices[4] = {
-    { (int)(REVERB_BUFFER_SIZE * 0.1), 0.4f }, // First early reflection
-    { (int)(REVERB_BUFFER_SIZE * 0.2), 0.3f }, // Mid reflection
-    { (int)(REVERB_BUFFER_SIZE * 0.3), 0.2f }, // Late reflection
-    { (int)(REVERB_BUFFER_SIZE * 0.4), 0.1f }, // Very late tail
+    {0.1, 0.4f}, // First early reflection
+    {0.2, 0.3f}, // Mid reflection
+    {0.3, 0.2f}, // Late reflection
+    {0.4, 0.1f}, // Very late tail
 };
-float applyReverb3(float signal, float amount, float* reverbBuffer, int& reverbIndex)
+float applyReverb3(float signal, float amount, float *reverbBuffer, int &reverbIndex)
 {
     return processDelayAndReverb(signal, amount, reverbBuffer, reverbIndex, REVERB_BUFFER_SIZE, 4, reverb3Voices);
 }
 
 BufferVoice delay1Voices[4] = {
-    { (int)(DELAY_BUFFER_SIZE * 0.20f), 0.6f }, // First early reflection
-    { (int)(DELAY_BUFFER_SIZE * 0.40f), 0.4f }, // Mid reflection
-    { (int)(DELAY_BUFFER_SIZE * 0.60f), 0.3f }, // Late reflection
-    { (int)(DELAY_BUFFER_SIZE * 0.80f), 0.2f }, // Very late tail
+    {0.20f, 0.6f}, // First early reflection
+    {0.40f, 0.4f}, // Mid reflection
+    {0.60f, 0.3f}, // Late reflection
+    {0.80f, 0.2f}, // Very late tail
 };
-float applyDelay(float signal, float amount, float* buffer, int& index)
+float applyDelay(float signal, float amount, float *buffer, int &index)
 {
     return processDelayAndReverb(signal, amount, buffer, index, DELAY_BUFFER_SIZE, 4, delay1Voices);
 }
 
 BufferVoice delay2Voices[4] = {
-    { (int)(DELAY_BUFFER_SIZE * 0.05f), 0.5f },
-    { (int)(DELAY_BUFFER_SIZE * 0.10f), 0.4f },
-    { (int)(DELAY_BUFFER_SIZE * 0.70f), 0.35f }, // very close to previous one = comb-like flutter
-    { (int)(DELAY_BUFFER_SIZE * 0.80f), 0.25f },
+    {0.05f, 0.5f},
+    {0.10f, 0.4f},
+    {0.70f, 0.35f}, // very close to previous one = comb-like flutter
+    {0.80f, 0.25f},
 };
-float applyDelay2(float signal, float amount, float* buffer, int& index)
+float applyDelay2(float signal, float amount, float *buffer, int &index)
 {
     return processDelayAndReverb(signal, amount, buffer, index, DELAY_BUFFER_SIZE, 4, delay2Voices);
 }
 
 BufferVoice delay3Voices[2] = {
-    { (int)(DELAY_BUFFER_SIZE * 0.3f), 0.6f },
-    { (int)(DELAY_BUFFER_SIZE * 0.6f), 0.4f },
+    {0.30f, 0.6f},
+    {0.60f, 0.4f},
 };
-float applyDelay3(float signal, float amount, float* buffer, int& index)
+float applyDelay3(float signal, float amount, float *buffer, int &index)
 {
     return processDelayAndReverb(signal, amount, buffer, index, DELAY_BUFFER_SIZE, 2, delay3Voices);
 }
 
-
-float applyShimmerReverb(float input, float amount, float* reverbBuffer, int& reverbIndex)
+float applyShimmerReverb(float input, float amount, float *reverbBuffer, int &reverbIndex)
 {
-    if (amount == 0.0f) {
+    if (amount == 0.0f)
+    {
         return input;
     }
 
@@ -135,8 +142,10 @@ float applyShimmerReverb(float input, float amount, float* reverbBuffer, int& re
 
     float reverbOut = 0.0f;
 
-    for (uint8_t i = 0; i < ReverbVoiceCount; i++) {
-        int readIndex = (reverbIndex + REVERB_BUFFER_SIZE - reverbVoices[i].delay) % REVERB_BUFFER_SIZE;
+    for (uint8_t i = 0; i < ReverbVoiceCount; i++)
+    {
+        int delay = reverbVoices[i].delay * REVERB_BUFFER_SIZE;
+        int readIndex = (reverbIndex + REVERB_BUFFER_SIZE - delay) % REVERB_BUFFER_SIZE;
         float delayedSample = reverbBuffer[readIndex];
 
         // Apply pitch shift (simple octave up using sine modulation)
@@ -157,7 +166,7 @@ float applyShimmerReverb(float input, float amount, float* reverbBuffer, int& re
     return input * (1.0f - mix) + reverbOut * mix;
 }
 
-float applyShimmer2Reverb(float input, float amount, float* reverbBuffer, int& reverbIndex, int& shimmerTime)
+float applyShimmer2Reverb(float input, float amount, float *reverbBuffer, int &reverbIndex, int &shimmerTime)
 {
     if (amount == 0.0f)
         return input;
@@ -166,8 +175,10 @@ float applyShimmer2Reverb(float input, float amount, float* reverbBuffer, int& r
 
     float reverbOut = 0.0f;
 
-    for (uint8_t i = 0; i < ReverbVoiceCount; i++) {
-        int readIndex = (reverbIndex + REVERB_BUFFER_SIZE - reverbVoices[i].delay) % REVERB_BUFFER_SIZE;
+    for (uint8_t i = 0; i < ReverbVoiceCount; i++)
+    {
+        int delay = reverbVoices[i].delay * REVERB_BUFFER_SIZE;
+        int readIndex = (reverbIndex + REVERB_BUFFER_SIZE - delay) % REVERB_BUFFER_SIZE;
         float delayedSample = reverbBuffer[readIndex];
 
         // Use shimmerTime for modulation — phase moves smoothly
