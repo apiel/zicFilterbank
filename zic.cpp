@@ -175,7 +175,7 @@ void renderFx()
     }
     else
     {
-        renderNumValue("Volume", std::to_string((int)(volume * 100)) + "%", "%");
+        renderNumValue("Volume", std::to_string((int)(volume * 100)), "%");
     }
     display.Update();
 }
